@@ -1,0 +1,70 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum NodeType {
+  Chat
+  Image
+  Video
+  Voice
+  Doc
+}
+
+model Node {
+  id String @id @default(cuid(2))
+
+  name String
+  posX Int
+  posY Int
+  type NodeType
+
+  creatorId String
+  Creator   User   @relation("CreatedNodes", fields: [creatorId], references: [id])
+
+  roomId String
+  Room   Room   @relation(fields: [roomId], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
+model Room {
+  id String @id @default(cuid(2))
+
+  name           String
+  isActive       Boolean @default(true)
+  invitationCode String
+
+  creatorId String
+  Creator   User   @relation("CreatedRooms", fields: [creatorId], references: [id])
+
+  Participants User[] @relation("RoomParticipants")
+
+  Nodes Node[]
+
+  createdAt DateTime @default(now())
+}
+
+model User {
+  id String @id
+
+  name  String
+  email String @unique
+
+  createdAt DateTime @default(now())
+
+  Nodes          Node[] @relation("CreatedNodes")
+  Rooms          Room[] @relation("CreatedRooms")
+  ParticipatedIn Room[] @relation("RoomParticipants")
+}
