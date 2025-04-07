@@ -1,0 +1,12 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+## Project structure
+
+- Project is using Next.js latest version
+- Shadcn/ui elements are all installed and under /src/components/ui
+- Using tailwindcss
+- Supabase is used
+- PNPM is the package manager
