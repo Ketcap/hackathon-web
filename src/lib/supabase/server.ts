@@ -32,19 +32,18 @@ export function createSupabaseMiddlewareClient(
     {
       cookies: {
         getAll() {
-          return req.cookies.getAll().map((cookie) => ({
-            name: cookie.name,
-            value: cookie.value,
-          }));
+          return req.cookies.getAll();
         },
-        setAll(cookies) {
-          cookies.forEach((cookie) => {
-            res.cookies.set({
-              name: cookie.name,
-              value: cookie.value,
-              ...cookie.options,
-            });
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) =>
+            res.cookies.set(name, value)
+          );
+          const supabaseResponse = NextResponse.next({
+            request: req,
           });
+          cookiesToSet.forEach(({ name, value, options }) =>
+            supabaseResponse.cookies.set(name, value, options)
+          );
         },
       },
     }

@@ -7,7 +7,9 @@ const SYNC_SECRET =
   process.env.SYNC_SECRET || "default-secret-do-not-use-in-production";
 
 export async function middleware(request: NextRequest) {
-  const res = NextResponse.next();
+  const res = NextResponse.next({
+    request,
+  });
   const supabase = await createSupabaseMiddlewareClient(request, res);
 
   const {
