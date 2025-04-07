@@ -3,13 +3,7 @@ import prisma from "@/lib/prisma";
 import { notFound, redirect } from "next/navigation";
 import { Prisma } from "@prisma/client";
 import { CopyInvitation } from "@/components/room/copy-invitation";
-import InfiniteCanvas from "@/components/room/infinite-canvas";
-
-interface RoomPageProps {
-  params: {
-    id: string;
-  };
-}
+import InfiniteCanvasWrapper from "@/components/room/infinite-canvas";
 
 type RoomWithRelations = Prisma.RoomGetPayload<{
   include: {
@@ -58,7 +52,13 @@ async function getRoomData(
   } as ExtendedRoomData;
 }
 
-export default async function RoomPage({ params }: RoomPageProps) {
+export default async function RoomPage({
+  params,
+}: {
+  params: Promise<{
+    id: string;
+  }>;
+}) {
   const { id } = await params;
   const supabase = await createSupabaseServerClient();
   const {
@@ -88,9 +88,9 @@ export default async function RoomPage({ params }: RoomPageProps) {
         <div className="flex-1 flex">
           {/* Canvas area */}
           <div className="flex-1 relative">
-            <InfiniteCanvas roomId={id} initialNodes={roomData.Nodes}>
+            <InfiniteCanvasWrapper roomId={id} initialNodes={roomData.Nodes}>
               {/* Add your canvas content here */}
-            </InfiniteCanvas>
+            </InfiniteCanvasWrapper>
           </div>
         </div>
       </div>

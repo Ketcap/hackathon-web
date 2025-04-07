@@ -12,7 +12,7 @@ export async function createSupabaseServerClient() {
         async getAll() {
           return await cookieStore.getAll();
         },
-        async setAll(cookies: { name: string; value: string; options: any }[]) {
+        async setAll(cookies) {
           cookies.forEach((cookie) => {
             cookieStore.set(cookie.name, cookie.value, cookie.options);
           });
@@ -37,7 +37,7 @@ export function createSupabaseMiddlewareClient(
             value: cookie.value,
           }));
         },
-        setAll(cookies: { name: string; value: string; options: any }[]) {
+        setAll(cookies) {
           cookies.forEach((cookie) => {
             res.cookies.set({
               name: cookie.name,

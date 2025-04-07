@@ -13,16 +13,11 @@ import { NodeType, Node } from "@prisma/client";
 import { useState } from "react";
 
 interface InfiniteCanvasProps {
-  children?: React.ReactNode;
   roomId: string;
   initialNodes: Node[];
 }
 
-function InfiniteCanvas({
-  children,
-  roomId,
-  initialNodes,
-}: InfiniteCanvasProps) {
+function InfiniteCanvas({ roomId, initialNodes }: InfiniteCanvasProps) {
   const { screenToFlowPosition } = useReactFlow();
   const [contextMenuPosition, setContextMenuPosition] = useState<{
     x: number;
@@ -91,8 +86,10 @@ function InfiniteCanvas({
   );
 }
 
-export default (props: InfiniteCanvasProps) => (
-  <ReactFlowProvider>
-    <InfiniteCanvas {...props} />
-  </ReactFlowProvider>
-);
+export default function InfiniteCanvasWrapper(props: InfiniteCanvasProps) {
+  return (
+    <ReactFlowProvider>
+      <InfiniteCanvas {...props} />
+    </ReactFlowProvider>
+  );
+}
