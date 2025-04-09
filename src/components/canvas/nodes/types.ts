@@ -2,11 +2,11 @@ import { NodeType } from "@prisma/client";
 
 export type NodeSettings =
   | {
-      type: NodeType.Chat;
+      type: typeof NodeType.Chat;
       data: AINodeSettings;
     }
   | {
-      type: NodeType.Image;
+      type: typeof NodeType.Image;
       data: ImageNodeSettings;
     };
 

@@ -23,13 +23,13 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { updateNodeSettings } from "@/app/actions/node";
-import { AINodeSettings } from "./types";
+import { AINodeSettings as AINodeSettingsType } from "./types";
 
 export interface AINodeSettingsProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   nodeId: string;
-  data: AINodeSettings;
+  data: AINodeSettingsType;
 }
 
 export function AINodeSettings({

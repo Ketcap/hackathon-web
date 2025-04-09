@@ -91,7 +91,7 @@ export function AINode({ data, id }: NodeProps<AINodeData>) {
         open={open}
         onOpenChange={setOpen}
         nodeId={id}
-        data={data}
+        data={data.settings}
       />
     </>
   );

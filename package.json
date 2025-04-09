@@ -4,9 +4,10 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "pnpm run generate &&next build",
+    "build": "next build",
     "start": "next start",
     "lint": "next lint",
+    "postinstall": "prisma generate",
     "generate": "prisma generate",
     "deploy": "wrangler deploy --config ./cloudflare/wrangler.jsonc",
     "cf-typegen": "wrangler types --config ./cloudflare/wrangler.jsonc --path ./cloudflare/worker-conf.d.ts"

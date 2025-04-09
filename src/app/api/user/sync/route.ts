@@ -18,7 +18,11 @@ export async function POST(request: Request) {
   }
 
   try {
-    const userData = await request.json();
+    const userData = (await request.json()) as {
+      id: string;
+      email: string;
+      user_metadata: { full_name: string };
+    };
 
     // Try to find the user first
     const existingUser = await prisma.user.findUnique({
