@@ -5,7 +5,6 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { NodeType } from "@prisma/client";
 import { AINodeSettings } from "@/components/canvas/nodes/types";
-import { JsonObject } from "@prisma/client/runtime/library";
 
 export async function createNode(
   roomId: string,
