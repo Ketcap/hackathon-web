@@ -29,6 +29,8 @@ model Node {
   posY Int
   type NodeType
 
+  settings Json?
+
   creatorId String
   Creator   User   @relation("CreatedNodes", fields: [creatorId], references: [id])
 

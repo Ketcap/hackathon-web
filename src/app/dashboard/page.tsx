@@ -12,10 +12,9 @@ import { ActionButtons } from "@/components/dashboard/action-buttons";
 export default async function DashboardPage() {
   const supabase = await createSupabaseServerClient();
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
-
-  if (!session) {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
     redirect("/");
   }
 
@@ -32,7 +31,7 @@ export default async function DashboardPage() {
         <Card className="border-border/50 bg-background/60 backdrop-blur-xl">
           <CardHeader className="space-y-1">
             <CardTitle className="text-2xl font-bold tracking-tighter text-center">
-              Welcome, {session.user.email}
+              Welcome, {user.email}
             </CardTitle>
             <CardDescription className="text-center">
               What would you like to do?

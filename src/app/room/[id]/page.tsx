@@ -4,6 +4,8 @@ import { notFound, redirect } from "next/navigation";
 import { Prisma } from "@prisma/client";
 import { CopyInvitation } from "@/components/room/copy-invitation";
 import InfiniteCanvasWrapper from "@/components/room/infinite-canvas";
+import ReactFlowCursorTracker from "@/components/canvas/cursors";
+import { PersistentViewport } from "@/components/canvas/usePersistentViewport";
 
 type RoomWithRelations = Prisma.RoomGetPayload<{
   include: {
@@ -90,6 +92,12 @@ export default async function RoomPage({
           <div className="flex-1 relative">
             <InfiniteCanvasWrapper roomId={id} initialNodes={roomData.Nodes}>
               {/* Add your canvas content here */}
+              <PersistentViewport roomId={id} />
+              <ReactFlowCursorTracker
+                userId={user.id}
+                roomId={id}
+                serverUrl={`wss://durable-object-starter.uoruc5.workers.dev/`}
+              />
             </InfiniteCanvasWrapper>
           </div>
         </div>

@@ -8,10 +8,10 @@ import { revalidatePath } from "next/cache";
 export async function createRoom() {
   const supabase = await createSupabaseServerClient();
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  if (!session) {
+  if (!user) {
     throw new Error("Unauthorized");
   }
 
@@ -20,10 +20,10 @@ export async function createRoom() {
       data: {
         name: generateRoomName(),
         invitationCode: generateInvitationCode(),
-        creatorId: session.user.id,
+        creatorId: user.id,
         Participants: {
           connect: {
-            id: session.user.id,
+            id: user.id,
           },
         },
       },
@@ -40,10 +40,10 @@ export async function createRoom() {
 export async function joinRoom(invitationCode: string) {
   const supabase = await createSupabaseServerClient();
   const {
-    data: { session },
-  } = await supabase.auth.getSession();
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  if (!session) {
+  if (!user) {
     throw new Error("Unauthorized");
   }
 
@@ -68,7 +68,7 @@ export async function joinRoom(invitationCode: string) {
       data: {
         Participants: {
           connect: {
-            id: session.user.id,
+            id: user.id,
           },
         },
       },

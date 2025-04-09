@@ -27,35 +27,35 @@ export function CanvasContextMenu({
       <ContextMenuTrigger>{children}</ContextMenuTrigger>
       <ContextMenuContent className="w-48">
         <ContextMenuItem
-          onClick={() => handleNodeCreate("Chat")}
+          onClick={() => handleNodeCreate(NodeType.Chat)}
           className="flex items-center gap-2"
         >
           <MessageSquare className="h-4 w-4" />
           Chat Node
         </ContextMenuItem>
         <ContextMenuItem
-          onClick={() => handleNodeCreate("Image")}
+          onClick={() => handleNodeCreate(NodeType.Image)}
           className="flex items-center gap-2"
         >
           <Image className="h-4 w-4" />
           Image Node
         </ContextMenuItem>
         <ContextMenuItem
-          onClick={() => handleNodeCreate("Video")}
+          onClick={() => handleNodeCreate(NodeType.Video)}
           className="flex items-center gap-2"
         >
           <Video className="h-4 w-4" />
           Video Node
         </ContextMenuItem>
         <ContextMenuItem
-          onClick={() => handleNodeCreate("Voice")}
+          onClick={() => handleNodeCreate(NodeType.Voice)}
           className="flex items-center gap-2"
         >
           <Mic className="h-4 w-4" />
           Voice Node
         </ContextMenuItem>
         <ContextMenuItem
-          onClick={() => handleNodeCreate("Doc")}
+          onClick={() => handleNodeCreate(NodeType.Doc)}
           className="flex items-center gap-2"
         >
           <FileText className="h-4 w-4" />

@@ -1,4 +1,4 @@
-import { createSupabaseMiddlewareClient } from "@/lib/supabase/server";
+import { getSupabaseMiddleware } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
@@ -10,11 +10,7 @@ export async function middleware(request: NextRequest) {
   const res = NextResponse.next({
     request,
   });
-  const supabase = await createSupabaseMiddlewareClient(request, res);
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const { user } = await getSupabaseMiddleware(request, res);
 
   if (user) {
     // Sync user data through API route
@@ -31,15 +27,6 @@ export async function middleware(request: NextRequest) {
       console.error("Error syncing user:", error);
     }
     return res;
-  }
-
-  // if there is no user and they're trying to access a protected route,
-  // redirect them to the home page
-  if (
-    request.nextUrl.pathname.startsWith("/dashboard") ||
-    request.nextUrl.pathname.startsWith("/room")
-  ) {
-    return NextResponse.redirect(new URL("/", request.url));
   }
 
   return res;

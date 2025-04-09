@@ -1,6 +1,7 @@
 "use client";
 import ReactFlow, {
   Background,
+  NodeTypes,
   ReactFlowProvider,
   useNodesState,
   useReactFlow,
@@ -11,13 +12,27 @@ import { createNode } from "@/app/actions/node";
 import { toast } from "sonner";
 import { NodeType, Node } from "@prisma/client";
 import { useState } from "react";
+import { AINode } from "../canvas/nodes/ai";
 
-interface InfiniteCanvasProps {
+export interface InfiniteCanvasProps {
   roomId: string;
   initialNodes: Node[];
+  children: React.ReactNode;
 }
 
-function InfiniteCanvas({ roomId, initialNodes }: InfiniteCanvasProps) {
+const nodeTypes: NodeTypes = {
+  [NodeType.Chat]: AINode,
+  [NodeType.Image]: AINode,
+  [NodeType.Video]: AINode,
+  [NodeType.Voice]: AINode,
+  [NodeType.Doc]: AINode,
+};
+
+function InfiniteCanvas({
+  roomId,
+  initialNodes,
+  children,
+}: InfiniteCanvasProps) {
   const { screenToFlowPosition } = useReactFlow();
   const [contextMenuPosition, setContextMenuPosition] = useState<{
     x: number;
@@ -27,7 +42,7 @@ function InfiniteCanvas({ roomId, initialNodes }: InfiniteCanvasProps) {
     // Convert database nodes to React Flow nodes
     initialNodes.map((node) => ({
       id: node.id,
-      type: "default",
+      type: node.type,
       position: { x: node.posX, y: node.posY },
       data: { label: node.name, type: node.type },
     }))
@@ -43,7 +58,7 @@ function InfiniteCanvas({ roomId, initialNodes }: InfiniteCanvasProps) {
       if (result.success && result.node) {
         const newNode = {
           id: result.node.id,
-          type: "default",
+          type: result.node.type,
           position: { x: result.node.posX, y: result.node.posY },
           data: { label: result.node.name, type: result.node.type },
         };
@@ -57,15 +72,17 @@ function InfiniteCanvas({ roomId, initialNodes }: InfiniteCanvasProps) {
       toast.error("Something went wrong");
     }
   };
-
+  console.log(nodes);
   return (
     <CanvasContextMenu onNodeCreate={handleNodeCreate}>
       <div className="w-full h-full">
         <ReactFlow
+          fitView
+          multiSelectionKeyCode={null}
           nodes={nodes}
           onNodesChange={onNodesChange}
-          fitView
           className="bg-background"
+          nodeTypes={nodeTypes}
           onContextMenu={(e) => {
             const flowPosition = screenToFlowPosition({
               x: e.clientX,
@@ -80,6 +97,7 @@ function InfiniteCanvas({ roomId, initialNodes }: InfiniteCanvasProps) {
             color="#323232"
             style={{ opacity: 1 }}
           />
+          {children}
         </ReactFlow>
       </div>
     </CanvasContextMenu>

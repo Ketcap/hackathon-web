@@ -11,6 +11,7 @@ export function LoginButtons() {
   const handleGoogleLogin = async () => {
     try {
       setLoading(true);
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
       });

@@ -4,6 +4,7 @@ import prisma from "@/lib/prisma";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { NodeType } from "@prisma/client";
+import { AINodeSettings } from "@/components/canvas/nodes/types";
 
 export async function createNode(
   roomId: string,
@@ -37,4 +38,25 @@ export async function createNode(
     console.error("Error creating node:", error);
     return { success: false, error: "Failed to create node" };
   }
+}
+
+export async function updateNodeSettings(
+  nodeId: string,
+  settings: AINodeSettings
+) {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error("Unauthorized");
+  }
+
+  const node = await prisma.node.update({
+    where: { id: nodeId },
+    data: { settings },
+  });
+
+  return { success: true, node };
 }

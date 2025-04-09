@@ -22,11 +22,11 @@ export async function createSupabaseServerClient() {
   );
 }
 
-export function createSupabaseMiddlewareClient(
+export async function getSupabaseMiddleware(
   req: NextRequest,
   res: NextResponse
 ) {
-  return createServerClient(
+  const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
@@ -48,4 +48,9 @@ export function createSupabaseMiddlewareClient(
       },
     }
   );
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  return { supabase, user };
 }
