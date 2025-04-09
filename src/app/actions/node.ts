@@ -54,7 +54,9 @@ export async function updateNodeSettings(
   }
 
   const node = await prisma.node.update({
-    where: { id: nodeId },
+    where: {
+      id: nodeId,
+    },
     data: {
       settings: { ...settings },
     },
