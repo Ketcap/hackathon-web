@@ -57,7 +57,7 @@ export async function updateNodeSettings(
   const node = await prisma.node.update({
     where: { id: nodeId },
     data: {
-      settings: settings as unknown as JsonObject,
+      settings: { ...settings },
     },
   });
 
