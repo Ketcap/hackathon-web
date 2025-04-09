@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { MousePointer2 } from "lucide-react";
 import ReconnectingWebSocket from "reconnecting-websocket";
-import { useNodesState, useReactFlow, useStore, useViewport } from "reactflow";
+import { useReactFlow, useStore, useViewport } from "reactflow";
 
 interface CursorPosition {
   id: string;
