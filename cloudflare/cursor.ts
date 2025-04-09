@@ -10,14 +10,6 @@ interface CursorData {
   color: string;
 }
 
-interface NodeData {
-  id: string;
-  position: {
-    x: number;
-    y: number;
-  };
-}
-
 const ghibliColors = [
   "#7CA9E6", // Sky Blue
   "#D56D5A", // Forest Red
@@ -36,8 +28,6 @@ export class CursorRoom extends DurableObject<Env> {
   sessions = new Map();
 
   cursors: Record<string, CursorData>;
-
-  nodes = [];
 
   colorAssignments = new Map<string, string>();
 
@@ -63,13 +53,6 @@ export class CursorRoom extends DurableObject<Env> {
         string
       >;
       this.colorAssignments = storedColors ?? new Map<string, string>();
-
-      // Load React Flow state
-      const storedNodes = (await ctx.storage.get("nodes")) as Record<
-        string,
-        NodeData
-      >;
-      this.nodes = storedNodes ?? [];
     });
   }
 
