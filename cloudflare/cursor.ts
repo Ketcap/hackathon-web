@@ -171,7 +171,7 @@ export class CursorRoom extends DurableObject<Env> {
         );
 
         // Persist cursor positions
-        await this.ctx.storage.put("cursors", this.cursors);
+        this.ctx.storage.put("cursors", this.cursors);
       } else if (data.type === "leave") {
         this.handleDisconnect(server);
       }
