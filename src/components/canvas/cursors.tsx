@@ -74,14 +74,18 @@ export default function ReactFlowCursorTracker({
     if (!userId || !serverUrl) return;
 
     // Create a reconnecting WebSocket
-    const socket = new ReconnectingWebSocket(`${serverUrl}?id=${roomId}`, [], {
-      maxReconnectionDelay: 5000,
-      minReconnectionDelay: 1000,
-      reconnectionDelayGrowFactor: 1.3,
-      connectionTimeout: 4000,
-      maxRetries: 3,
-      debug: false,
-    });
+    const socket = new ReconnectingWebSocket(
+      `${serverUrl}/cursor?id=${roomId}`,
+      [],
+      {
+        maxReconnectionDelay: 5000,
+        minReconnectionDelay: 1000,
+        reconnectionDelayGrowFactor: 1.3,
+        connectionTimeout: 4000,
+        maxRetries: 3,
+        debug: false,
+      }
+    );
 
     socketRef.current = socket;
 
@@ -96,23 +100,21 @@ export default function ReactFlowCursorTracker({
       );
     };
 
-    const handleClose = () => {
-      console.log("React Flow cursor tracker disconnected");
-    };
+    const handleClose = () => {};
 
     const handleMessage = (event: MessageEvent) => {
       try {
         const data = JSON.parse(event.data);
 
-        if (data.type === "cursor-update") {
+        if (data.type === "cursor-update" && data.id) {
           setCursors((prev) => ({
             ...prev,
-            [data.userId]: data,
+            [data.id]: data,
           }));
         } else if (data.type === "cursor-leave") {
           setCursors((prev) => {
             const newCursors = { ...prev };
-            delete newCursors[data.userId];
+            delete newCursors[data.id];
             return newCursors;
           });
         } else if (data.type === "cursors-state") {
@@ -151,7 +153,7 @@ export default function ReactFlowCursorTracker({
     if (!reactFlowWrapper || !socketRef.current) return;
 
     let lastUpdate = 0;
-    const THROTTLE_MS = 10; // ~30 updates per second
+    const THROTTLE_MS = 0; // ~30 updates per second
 
     const handleMouseMove = (e: MouseEvent) => {
       const now = Date.now();
@@ -201,9 +203,7 @@ export default function ReactFlowCursorTracker({
   }, [viewport]);
 
   if (!reactFlowWrapper) return null;
-
   return Object.values(cursors).map((cursor) => {
-    console.log(cursor, userId);
     if (cursor.id === userId) return null;
     // Use the absolute canvas position and transform it to the current viewport
     const cursorX = cursor.canvasX * viewport.zoom + viewport.x;

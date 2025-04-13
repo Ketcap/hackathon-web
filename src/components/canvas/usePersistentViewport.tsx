@@ -32,7 +32,6 @@ export function usePersistentViewport(
           zoom: viewport.zoom,
         })
       );
-      console.log(`Saved viewport for room ${roomId}:`, viewport);
     }, 300);
 
     return () => clearTimeout(timeoutId);
@@ -60,10 +59,6 @@ export function usePersistentViewport(
               y: parsedViewport.y,
               zoom: parsedViewport.zoom,
             });
-            console.log(
-              `Restored viewport for room ${roomId}:`,
-              parsedViewport
-            );
           }, 100);
         }
       } catch (error) {

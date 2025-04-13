@@ -23,22 +23,45 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { updateNodeSettings } from "@/app/actions/node";
-import { AINodeSettings as AINodeSettingsType } from "./types";
+import { useAI } from "./ai-provider";
 
 export interface AINodeSettingsProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   nodeId: string;
-  data: AINodeSettingsType;
 }
+
+const models = [
+  { label: "OpenAI O3 Mini", value: "openai:o3-mini" },
+  { label: "OpenAI O1 Mini", value: "openai:o1-mini" },
+  { label: "OpenAI GPT-4O Mini", value: "openai:gpt-4o-mini" },
+  { label: "OpenAI GPT-4O", value: "openai:gpt-4o" },
+  { label: "Groq Gemma 2 9B", value: "groq:gemma2-9b-it" },
+  { label: "Groq Llama 3.1 8B Instant", value: "groq:llama-3.1-8b-instant" },
+  { label: "Groq Llama3 70B", value: "groq:llama3-70b-8192" },
+  {
+    label: "Groq Llama-4 Scout 17B",
+    value: "groq:meta-llama/llama-4-scout-17b-16e-instruct",
+  },
+  {
+    label: "Groq Llama-4 Maverick 17B",
+    value: "groq:meta-llama/llama-4-maverick-17b-128e-instruct",
+  },
+  { label: "Groq Qwen 32B", value: "groq:qwen-qwq-32b" },
+  { label: "Groq Llama 3.3 70B", value: "groq:llama-3.3-70b-specdec" },
+  {
+    label: "Groq DeepSeek R1 Llama 70B",
+    value: "groq:deepseek-r1-distill-llama-70b",
+  },
+];
 
 export function AINodeSettings({
   open,
   onOpenChange,
   nodeId,
-  data,
 }: AINodeSettingsProps) {
   const { setNodes } = useReactFlow();
+  const { updateConfig, config, isRunning } = useAI();
 
   const updateNodeData = useCallback(
     (formData: FormData) => {
@@ -49,6 +72,13 @@ export function AINodeSettings({
       const systemPrompt = formData.get("systemPrompt") as string;
       const maxTokens =
         Number.parseInt(formData.get("maxTokens") as string) || undefined;
+
+      updateConfig({
+        model,
+        temperature,
+        maxTokens: maxTokens || 1024,
+        prompt: systemPrompt,
+      });
 
       updateNodeSettings(nodeId, {
         model,
@@ -77,7 +107,7 @@ export function AINodeSettings({
 
       onOpenChange(false);
     },
-    [nodeId, setNodes, onOpenChange]
+    [nodeId, setNodes, onOpenChange, updateConfig]
   );
 
   return (
@@ -93,15 +123,16 @@ export function AINodeSettings({
         <form action={updateNodeData} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="model">Model</Label>
-            <Select name="model" defaultValue={data.model || "gpt-4"}>
+            <Select name="model" defaultValue={config.model}>
               <SelectTrigger id="model" className="w-full">
                 <SelectValue placeholder="Select model" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="gpt-4">GPT-4</SelectItem>
-                <SelectItem value="gpt-3.5-turbo">GPT-3.5 Turbo</SelectItem>
-                <SelectItem value="claude-3-opus">Claude 3 Opus</SelectItem>
-                <SelectItem value="claude-3-sonnet">Claude 3 Sonnet</SelectItem>
+                {models.map((model) => (
+                  <SelectItem key={model.value} value={model.value}>
+                    {model.label}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -115,7 +146,11 @@ export function AINodeSettings({
                 min="0"
                 max="2"
                 step="0.1"
-                defaultValue={data.temperature || 0.7}
+                defaultValue={
+                  typeof config.temperature === "number"
+                    ? config.temperature
+                    : 0.7
+                }
               />
             </div>
             <div className="space-y-2">
@@ -126,7 +161,7 @@ export function AINodeSettings({
                 type="number"
                 min="1"
                 max="4096"
-                defaultValue={data.maxTokens || 1024}
+                defaultValue={config.maxTokens || 1024}
               />
             </div>
           </div>
@@ -136,12 +171,14 @@ export function AINodeSettings({
               id="systemPrompt"
               name="systemPrompt"
               placeholder="Enter system prompt..."
-              defaultValue={data.systemPrompt || ""}
+              defaultValue={config.prompt || ""}
               className="min-h-[100px]"
             />
           </div>
           <DialogFooter>
-            <Button type="submit">Save changes</Button>
+            <Button type="submit" disabled={isRunning}>
+              Save changes
+            </Button>
           </DialogFooter>
         </form>
       </DialogContent>

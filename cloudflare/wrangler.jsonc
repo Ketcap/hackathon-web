@@ -5,11 +5,12 @@
 {
   "$schema": "../node_modules/wrangler/config-schema.json",
   "name": "durable-object-starter",
-  "main": "./cursor.ts",
+  "main": "./worker.ts",
   "compatibility_date": "2025-04-08",
+  "vars": {},
   "migrations": [
     {
-      "new_sqlite_classes": ["CursorRoom"],
+      "new_sqlite_classes": ["CursorRoom", "AIRoom"],
       "tag": "v1"
     }
   ],
@@ -18,11 +19,16 @@
       {
         "class_name": "CursorRoom",
         "name": "CURSOR_ROOM"
+      },
+      {
+        "class_name": "AIRoom",
+        "name": "AI_ROOM"
       }
     ]
   },
   "observability": {
-    "enabled": true
+    "enabled": true,
+    "head_sampling_rate": 1
   }
   /**
    * Smart Placement

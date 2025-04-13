@@ -11,7 +11,7 @@ export async function syncUser(supabaseUser: User) {
         id: supabaseUser.id,
       },
     });
-    console.log("existingUser", existingUser);
+
     if (!existingUser) {
       // Create new user if they don't exist
       await prisma.user.create({

@@ -72,7 +72,7 @@ function InfiniteCanvas({
       toast.error("Something went wrong");
     }
   };
-  console.log(nodes);
+
   return (
     <CanvasContextMenu onNodeCreate={handleNodeCreate}>
       <div className="w-full h-full">

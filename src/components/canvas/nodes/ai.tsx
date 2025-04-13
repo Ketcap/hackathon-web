@@ -14,22 +14,25 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { Send, SettingsIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { AINodeSettings, AINodeSettingsProps } from "./ai-settings";
+import { AINodeSettings } from "./ai-settings";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
-interface Message {
-  id: string;
-  content: string;
-  sender: "user" | "bot";
-}
+import { AIProvider, useAI } from "./ai-provider";
 
 export interface AINodeData {
   messages: Message[];
-  settings: AINodeSettingsProps["data"];
 }
 
-export function AINode({ data, id }: NodeProps<AINodeData>) {
+function AINodeBase({ id }: NodeProps<AINodeData>) {
   const [open, setOpen] = useState(false);
+  const { sendMessage, messages, isRunning } = useAI();
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.target as HTMLFormElement);
+    const message = formData.get("message") as string;
+    sendMessage(message);
+  };
   return (
     <>
       <Card className="h-[450px] w-[500px] shadow-md">
@@ -41,58 +44,67 @@ export function AINode({ data, id }: NodeProps<AINodeData>) {
             </Button>
           </CardAction>
         </CardHeader>
-        <CardContent className="h-[100%] flex flex-col justify-between">
-          <ScrollArea className="w-[100%] h-[100%]pr-4">
-            <div className="flex flex-col gap-3">
-              {(data.messages ?? []).map((message) => (
-                <div
-                  key={message.id}
-                  className={cn(
-                    "flex gap-2",
-                    message.sender === "user" ? "flex-row-reverse" : "flex-row"
-                  )}
-                >
-                  <Avatar className="h-8 w-8">
-                    <AvatarImage
-                      src={
-                        message.sender === "bot"
-                          ? "/placeholder.svg?height=32&width=32"
-                          : undefined
-                      }
-                      alt={message.sender}
-                    />
-                    <AvatarFallback>
-                      {message.sender === "user" ? "U" : "B"}
-                    </AvatarFallback>
-                  </Avatar>
+        <form
+          onSubmit={handleSubmit}
+          className="h-[100%] flex flex-col justify-between"
+        >
+          <CardContent className="h-[100%] flex flex-col justify-between">
+            <ScrollArea className="w-[100%] h-[100%]pr-4">
+              <div className="flex flex-col gap-3">
+                {messages.map((message) => (
                   <div
+                    key={message.id}
                     className={cn(
-                      "rounded-lg px-3 py-2 text-sm",
-                      message.sender === "user"
-                        ? "bg-primary text-primary-foreground"
-                        : "bg-muted"
+                      "flex gap-2",
+                      message.messageType === "user"
+                        ? "flex-row-reverse"
+                        : "flex-row"
                     )}
                   >
-                    {message.content}
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={undefined} alt={message.messageType} />
+                      <AvatarFallback>
+                        {message.messageType === "user" ? "User" : "AI"}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div
+                      className={cn(
+                        "rounded-lg px-3 py-2 text-sm",
+                        message.messageType === "user"
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-muted"
+                      )}
+                    >
+                      {message.message}
+                    </div>
                   </div>
-                </div>
-              ))}
+                ))}
+              </div>
+            </ScrollArea>
+            <div className="flex gap-2">
+              <Input
+                name="message"
+                placeholder="Type your message..."
+                className="flex-1"
+              />
+              <Button size="icon" type="submit" disabled={isRunning}>
+                <Send className="h-4 w-4" />
+              </Button>
             </div>
-          </ScrollArea>
-          <div className="flex gap-2">
-            <Input placeholder="Type your message..." className="flex-1" />
-            <Button size="icon" type="button">
-              <Send className="h-4 w-4" />
-            </Button>
-          </div>
-        </CardContent>
+          </CardContent>
+        </form>
       </Card>
-      <AINodeSettings
-        open={open}
-        onOpenChange={setOpen}
-        nodeId={id}
-        data={data.settings}
-      />
+      <AINodeSettings open={open} onOpenChange={setOpen} nodeId={id} />
     </>
   );
 }
+
+export const AINode = (props: NodeProps<AINodeData>) => (
+  <AIProvider
+    roomId={props.id}
+    serverUrl={`wss://durable-object-starter.uoruc5.workers.dev`}
+    // serverUrl={`wss://127.0.0.1:9000`}
+  >
+    <AINodeBase {...props} />
+  </AIProvider>
+);

@@ -1,4 +1,4 @@
-import { DurableObject } from "cloudflare:workers";
+import { BasicDurableObject } from "./basic";
 // This file would be deployed to Cloudflare Workers
 
 interface CursorData {
@@ -24,19 +24,13 @@ const ghibliColors = [
 ];
 
 // Define the Durable Object class
-export class CursorRoom extends DurableObject<Env> {
-  sessions = new Map();
-
-  cursors: Record<string, CursorData>;
+export class CursorRoom extends BasicDurableObject {
+  cursors: Record<string, CursorData> = {};
 
   colorAssignments = new Map<string, string>();
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
-
-    this.cursors = {};
-
-    // Store connected WebSockets and cursor positions
 
     // Handle when a client disconnects
     ctx.blockConcurrencyWhile(async () => {
@@ -89,35 +83,28 @@ export class CursorRoom extends DurableObject<Env> {
     return color;
   }
 
-  // Handle incoming requests to the Durable Object
-  async fetch(request: Request) {
-    // Accept the WebSocket
-    if (request.headers.get("Upgrade") === "websocket") {
-      const pair = new WebSocketPair();
-      const [client, server] = Object.values(pair);
+  handleJoin(event: MessageEvent, server: WebSocket) {
+    const data = JSON.parse(event.data);
 
-      // Set up event handlers for the WebSocket
-      server.accept();
+    const userId = data.userId;
+    // Assign a color to this user
+    const color = this.getColorForUser(userId);
 
-      server.addEventListener("message", (event) =>
-        this.handleMessage(event, server)
-      );
-
-      server.addEventListener("close", () => {
-        this.handleDisconnect(server);
-      });
-
-      server.addEventListener("error", () => {
-        this.handleDisconnect(server);
-      });
-
-      return new Response(null, {
-        status: 101,
-        webSocket: client,
-      });
+    // Make sure all cursors have colors
+    for (const id in this.cursors) {
+      if (!this.cursors[id].color) {
+        this.cursors[id].color = this.getColorForUser(id);
+      }
     }
 
-    return new Response("Expected WebSocket", { status: 400 });
+    // Send current cursor state to the new client
+    server.send(
+      JSON.stringify({
+        type: "cursors-state",
+        cursors: this.cursors,
+        yourColor: color, // Send the user their assigned color
+      })
+    );
   }
 
   handleMessage(event: MessageEvent, server: WebSocket) {
@@ -147,8 +134,6 @@ export class CursorRoom extends DurableObject<Env> {
             yourColor: color, // Send the user their assigned color
           })
         );
-
-        console.log(`User ${userId} joined`);
       } else if (data.type === "cursor-update") {
         const cursorData = {
           id: data.userId,
@@ -185,7 +170,6 @@ export class CursorRoom extends DurableObject<Env> {
     const userId = this.sessions.get(websocket);
 
     if (userId) {
-      this.sessions.delete(websocket);
       delete this.cursors[userId];
 
       // Notify other clients that this user left
@@ -194,43 +178,7 @@ export class CursorRoom extends DurableObject<Env> {
         userId,
       });
 
-      console.log(`User ${userId} left`);
-
-      // Update storage
       this.ctx.storage.put("cursors", this.cursors);
     }
   }
-
-  // Broadcast a message to all connected clients
-  broadcast(message: unknown, exclude: WebSocket | null = null) {
-    const serialized = JSON.stringify(message);
-
-    for (const [client] of this.sessions) {
-      if (client !== exclude && client.readyState === WebSocket.OPEN) {
-        client.send(serialized);
-      }
-    }
-  }
 }
-
-// Worker script to route requests to the Durable Object
-// eslint-disable-next-line
-export default {
-  async fetch(request: Request, env: Env) {
-    // Extract the room ID from the request URL
-    const url = new URL(request.url);
-
-    // Get the room ID from the 'id' query parameter, or use 'default-room' as fallback
-    const roomId = url.searchParams.get("id") || "default-room";
-
-    // Get the Durable Object stub for the cursor room using the provided room ID
-    const id = env.CURSOR_ROOM.idFromName(roomId);
-    const room = env.CURSOR_ROOM.get(id);
-
-    // Forward the request to the Durable Object
-    return room.fetch(request);
-  },
-};
-
-// Define the Durable Object binding
-export { CursorRoom as DurableObject };
