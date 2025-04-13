@@ -77,15 +77,15 @@ export function AIProvider({ children, roomId, serverUrl }: AIProviderProps) {
       try {
         const data = JSON.parse(event.data);
         if (data.type === "message") {
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: data.id,
-              message: data.message,
-              messageType: data.messageType,
-              timestamp: new Date(),
-            },
-          ]);
+          setMessages((prev) => {
+            const doesExist = prev.find((msg) => msg.id === data.id);
+            if (doesExist) {
+              return prev.map((msg) =>
+                msg.id === data.id ? { ...msg, message: data.message } : msg
+              );
+            }
+            return [...prev, data];
+          });
         } else if (data.type === "config") {
           setConfig(data.config);
         } else if (data.type === "status") {
@@ -94,11 +94,11 @@ export function AIProvider({ children, roomId, serverUrl }: AIProviderProps) {
           setMessages(data.messages);
         } else if (data.type === "chunk") {
           setMessages((prev) => {
-            const existingMessage = prev.find((msg) => msg.id === data.id);
-            if (existingMessage) {
+            const doesExist = prev.find((msg) => msg.id === data.id);
+            if (doesExist) {
               return prev.map((msg) =>
                 msg.id === data.id
-                  ? { ...msg, message: msg.message + data.message }
+                  ? { ...msg, message: msg.message + data.content }
                   : msg
               );
             }

@@ -166,6 +166,14 @@ export class AIRoom extends BasicDurableObject {
           content: message.message,
         })) satisfies CoreMessage[];
 
+        this.broadcast({
+          type: "message",
+          id: messageId,
+          message: "",
+          messageType: "assistant",
+          timestamp: new Date().toISOString(),
+        });
+
         const { textStream } = streamText({
           experimental_transform: smoothStream(),
           model:
