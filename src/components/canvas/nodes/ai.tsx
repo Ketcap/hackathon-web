@@ -12,7 +12,7 @@ import {
 } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { Send, SettingsIcon } from "lucide-react";
+import { MoveIcon, Send, SettingsIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AINodeSettings } from "./ai-settings";
 import { useState } from "react";
@@ -39,17 +39,21 @@ function AINodeBase({ id }: NodeProps<AINodeData>) {
         <CardHeader className="pb-2 ">
           <CardTitle className="text-sm font-medium">Chat</CardTitle>
           <CardAction>
+            <Button variant="ghost" size="sm" className="drag-handle">
+              <MoveIcon />
+            </Button>
             <Button onClick={() => setOpen(true)} variant="ghost" size="sm">
               <SettingsIcon />
             </Button>
           </CardAction>
         </CardHeader>
-        <form
-          onSubmit={handleSubmit}
-          className="h-[100%] flex flex-col justify-between"
-        >
-          <CardContent className="h-[100%] flex flex-col justify-between">
-            <ScrollArea className="w-[100%] h-[100%]pr-4">
+
+        <CardContent className="h-[100%] flex flex-col justify-between">
+          <form
+            onSubmit={handleSubmit}
+            className="h-[100%] flex flex-col justify-between"
+          >
+            <ScrollArea className="w-[100%] h-[280px] pr-4">
               <div className="flex flex-col gap-3">
                 {messages.map((message) => (
                   <div
@@ -91,8 +95,8 @@ function AINodeBase({ id }: NodeProps<AINodeData>) {
                 <Send className="h-4 w-4" />
               </Button>
             </div>
-          </CardContent>
-        </form>
+          </form>
+        </CardContent>
       </Card>
       <AINodeSettings open={open} onOpenChange={setOpen} nodeId={id} />
     </>

@@ -43,6 +43,7 @@ function InfiniteCanvas({
     initialNodes.map((node) => ({
       id: node.id,
       type: node.type,
+      dragHandle: ".drag-handle",
       position: { x: node.posX, y: node.posY },
       data: { label: node.name, type: node.type },
     }))
