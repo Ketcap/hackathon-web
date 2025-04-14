@@ -96,8 +96,8 @@ export default async function RoomPage({
               <ReactFlowCursorTracker
                 userId={user.id}
                 roomId={id}
-                serverUrl={`wss://durable-object-starter.uoruc5.workers.dev`}
-                // serverUrl={`wss://127.0.0.1:9000`}
+                serverUrl={`wss://canvas-ai.uoruc5.workers.dev`}
+                // serverUrl={`wss://localhost:8787`}
               />
             </InfiniteCanvasWrapper>
           </div>

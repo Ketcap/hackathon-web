@@ -83,6 +83,9 @@ function InfiniteCanvas({
           nodes={nodes}
           onNodesChange={onNodesChange}
           className="bg-background"
+          zoomOnPinch
+          minZoom={0.5}
+          maxZoom={1}
           nodeTypes={nodeTypes}
           onContextMenu={(e) => {
             const flowPosition = screenToFlowPosition({

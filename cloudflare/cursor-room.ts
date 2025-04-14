@@ -119,13 +119,6 @@ export class CursorRoom extends BasicDurableObject {
         // Assign a color to this user
         const color = this.getColorForUser(userId);
 
-        // Make sure all cursors have colors
-        for (const id in this.cursors) {
-          if (!this.cursors[id].color) {
-            this.cursors[id].color = this.getColorForUser(id);
-          }
-        }
-
         // Send current cursor state to the new client
         server.send(
           JSON.stringify({
@@ -143,8 +136,6 @@ export class CursorRoom extends BasicDurableObject {
           canvasY: data.canvasY,
           color: this.getColorForUser(data.userId), // Add color to cursor data
         };
-        // Update cursor position
-        this.cursors[data.userId] = cursorData;
 
         // Broadcast to all clients except sender
         this.broadcast(
@@ -154,9 +145,6 @@ export class CursorRoom extends BasicDurableObject {
           },
           server
         );
-
-        // Persist cursor positions
-        this.ctx.storage.put("cursors", this.cursors);
       } else if (data.type === "leave") {
         this.handleDisconnect(server);
       }
