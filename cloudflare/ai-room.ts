@@ -109,6 +109,9 @@ export class AIRoom extends BasicDurableObject {
 
     if (data.type === "message") {
       console.log("AI Room handleMessage message", data);
+      if (this.isRunning) {
+        return;
+      }
       this.isRunning = true;
       // const userMessage = this.sql
       //   .exec(

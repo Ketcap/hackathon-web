@@ -12,8 +12,8 @@ import { createNode } from "@/app/actions/node";
 import { toast } from "sonner";
 import { NodeType, Node } from "@prisma/client";
 import { useState } from "react";
-import { AINode } from "../canvas/nodes/ai";
-
+import { AINode } from "../canvas/nodes/ai/ai";
+import { ImageNode } from "../canvas/nodes/image/image";
 export interface InfiniteCanvasProps {
   roomId: string;
   initialNodes: Node[];
@@ -22,7 +22,7 @@ export interface InfiniteCanvasProps {
 
 const nodeTypes: NodeTypes = {
   [NodeType.Chat]: AINode,
-  [NodeType.Image]: AINode,
+  [NodeType.Image]: ImageNode,
   [NodeType.Video]: AINode,
   [NodeType.Voice]: AINode,
   [NodeType.Doc]: AINode,
@@ -64,7 +64,7 @@ function InfiniteCanvas({
           data: { label: result.node.name, type: result.node.type },
         };
         setNodes((nds) => [...nds, newNode]);
-        toast.success("Node created successfully");
+        toast.success(`${result.node.name} created successfully`);
       } else {
         toast.error("Failed to create node");
       }
@@ -87,6 +87,8 @@ function InfiniteCanvas({
           minZoom={0.5}
           maxZoom={1}
           nodeTypes={nodeTypes}
+          zoomOnScroll={false}
+          preventScrolling={false}
           onContextMenu={(e) => {
             const flowPosition = screenToFlowPosition({
               x: e.clientX,

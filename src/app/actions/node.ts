@@ -4,7 +4,6 @@ import prisma from "@/lib/prisma";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { NodeType } from "@prisma/client";
-import { AINodeSettings } from "@/components/canvas/nodes/types";
 
 export async function createNode(
   roomId: string,
@@ -42,7 +41,7 @@ export async function createNode(
 
 export async function updateNodeSettings(
   nodeId: string,
-  settings: AINodeSettings
+  settings: Record<string, string>
 ) {
   const supabase = await createSupabaseServerClient();
   const {

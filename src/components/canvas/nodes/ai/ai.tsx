@@ -1,6 +1,7 @@
 "use client";
 
 import { type NodeProps } from "reactflow";
+import { useRef, useEffect } from "react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -25,17 +26,29 @@ export interface AINodeData {
 
 function AINodeBase({ id }: NodeProps<AINodeData>) {
   const [open, setOpen] = useState(false);
+  const [message, setMessage] = useState("");
   const { sendMessage, messages, isRunning } = useAI();
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    }
+  }, [messages]);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const formData = new FormData(e.target as HTMLFormElement);
-    const message = formData.get("message") as string;
     sendMessage(message);
+    setMessage("");
   };
   return (
     <>
-      <Card className="h-[450px] w-[500px] shadow-md">
+      <Card className="h-[600px] w-[500px] shadow-md">
         <CardHeader className="pb-2 ">
           <CardTitle className="text-sm font-medium">Chat</CardTitle>
           <CardAction>
@@ -53,7 +66,7 @@ function AINodeBase({ id }: NodeProps<AINodeData>) {
             onSubmit={handleSubmit}
             className="h-[100%] flex flex-col justify-between"
           >
-            <ScrollArea className="w-[100%] h-[280px] pr-4">
+            <ScrollArea className="w-[100%] h-[450px] pr-4" ref={scrollRef}>
               <div className="flex flex-col gap-3">
                 {messages.map((message) => (
                   <div
@@ -68,7 +81,7 @@ function AINodeBase({ id }: NodeProps<AINodeData>) {
                     <Avatar className="h-8 w-8">
                       <AvatarImage src={undefined} alt={message.messageType} />
                       <AvatarFallback>
-                        {message.messageType === "user" ? "User" : "AI"}
+                        {message.messageType === "user" ? "U" : "AI"}
                       </AvatarFallback>
                     </Avatar>
                     <div
@@ -83,6 +96,7 @@ function AINodeBase({ id }: NodeProps<AINodeData>) {
                     </div>
                   </div>
                 ))}
+                <div ref={bottomRef} />
               </div>
             </ScrollArea>
             <div className="flex gap-2">
@@ -90,6 +104,9 @@ function AINodeBase({ id }: NodeProps<AINodeData>) {
                 name="message"
                 placeholder="Type your message..."
                 className="flex-1"
+                disabled={isRunning}
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
               />
               <Button size="icon" type="submit" disabled={isRunning}>
                 <Send className="h-4 w-4" />

@@ -12,6 +12,14 @@
     {
       "new_sqlite_classes": ["CursorRoom", "AIRoom"],
       "tag": "v1"
+    },
+    {
+      "new_classes": ["ImageRoom"],
+      "tag": "v2"
+    },
+    {
+      "new_sqlite_classes": ["ImageRoom"],
+      "tag": "v3"
     }
   ],
   "durable_objects": {
@@ -23,6 +31,10 @@
       {
         "class_name": "AIRoom",
         "name": "AI_ROOM"
+      },
+      {
+        "class_name": "ImageRoom",
+        "name": "IMAGE_ROOM"
       }
     ]
   },

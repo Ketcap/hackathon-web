@@ -1,9 +1,10 @@
 export { CursorRoom } from "./cursor-room";
 export { AIRoom } from "./ai-room";
-
+export { ImageRoom } from "./ai-image-room";
 interface Env {
   CURSOR_ROOM: DurableObjectNamespace;
   AI_ROOM: DurableObjectNamespace;
+  IMAGE_ROOM: DurableObjectNamespace;
 }
 
 // eslint-disable-next-line
@@ -28,6 +29,13 @@ export default {
       // Default to Cursor Room
       const id = env.CURSOR_ROOM.idFromName(roomId);
       const room = env.CURSOR_ROOM.get(id);
+      return room.fetch(request);
+    }
+
+    if (path.startsWith("/image")) {
+      // Route to Image Room
+      const id = env.IMAGE_ROOM.idFromName(roomId);
+      const room = env.IMAGE_ROOM.get(id);
       return room.fetch(request);
     }
 

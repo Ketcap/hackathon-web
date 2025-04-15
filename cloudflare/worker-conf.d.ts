@@ -4,11 +4,15 @@ declare namespace Cloudflare {
   interface Env {
     CURSOR_ROOM: DurableObjectNamespace<import("./worker").CursorRoom>;
     AI_ROOM: DurableObjectNamespace<import("./worker").AIRoom>;
+    IMAGE_ROOM: DurableObjectNamespace<import("./worker").ImageRoom>;
   }
 }
 interface Env extends Cloudflare.Env {
   OPENAI_API_KEY: string;
   GROQ_API_KEY: string;
+  FAL_API_KEY: string;
+  IMAGE_ROUTE_URL: string;
+  SYNC_SECRET: string;
 }
 
 // Begin runtime types

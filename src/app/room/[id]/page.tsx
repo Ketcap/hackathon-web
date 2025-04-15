@@ -6,6 +6,8 @@ import { CopyInvitation } from "@/components/room/copy-invitation";
 import InfiniteCanvasWrapper from "@/components/room/infinite-canvas";
 import ReactFlowCursorTracker from "@/components/canvas/cursors";
 import { PersistentViewport } from "@/components/canvas/usePersistentViewport";
+import { Button } from "@/components/ui/button";
+import Test from "./test";
 
 type RoomWithRelations = Prisma.RoomGetPayload<{
   include: {
@@ -95,6 +97,7 @@ export default async function RoomPage({
               <PersistentViewport roomId={id} />
               <ReactFlowCursorTracker
                 userId={user.id}
+                username={user.email ?? ""}
                 roomId={id}
                 serverUrl={`wss://canvas-ai.uoruc5.workers.dev`}
                 // serverUrl={`wss://localhost:8787`}

@@ -4,6 +4,14 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { MousePointer2 } from "lucide-react";
 import ReconnectingWebSocket from "reconnecting-websocket";
 import { useReactFlow, useStore, useViewport } from "reactflow";
+import { toast } from "sonner";
+import {
+  CursorJoinBroadCast,
+  CursorJoinInput,
+  CursorLeaveBroadCast,
+  CursorUpdateBroadCast,
+  CursorUpdateInput,
+} from "../../../cloudflare/types/cursor-room";
 
 interface CursorPosition {
   id: string;
@@ -11,20 +19,37 @@ interface CursorPosition {
   y: number;
   canvasX: number;
   canvasY: number;
-  color: string;
 }
 
 interface ReactFlowCursorTrackerProps {
   userId: string;
   roomId?: string;
   serverUrl: string;
+  username: string;
 }
+
+const ghibliColors = [
+  "#7CA9E6", // Sky Blue
+  "#D56D5A", // Forest Red
+  "#8BC28A", // Totoro Pasture
+  "#E6A4B4", // Chihiro Rose
+  "#F0A868", // Calcifer's Ember
+  "#5D9B9B", // Ponyo Ocean
+  "#A893C0", // Wind Lavender
+  "#D8B44A", // Kiki Yellow
+  "#7D9367", // Forest Moss
+  "#C67D5E", // Kaguya Clay
+];
 
 export default function ReactFlowCursorTracker({
   userId,
   roomId = "default",
   serverUrl,
+  username,
 }: ReactFlowCursorTrackerProps) {
+  const [idNames, setIdNames] = useState<
+    Record<string, { name: string; color: string }>
+  >({});
   const [cursors, setCursors] = useState<Record<string, CursorPosition>>({});
   const socketRef = useRef<ReconnectingWebSocket | null>(null);
 
@@ -94,9 +119,9 @@ export default function ReactFlowCursorTracker({
       socket.send(
         JSON.stringify({
           type: "join",
-          userId,
-          roomId,
-        })
+          id: userId,
+          username,
+        } as CursorJoinInput)
       );
     };
 
@@ -106,19 +131,40 @@ export default function ReactFlowCursorTracker({
       try {
         const data = JSON.parse(event.data);
 
-        if (data.type === "cursor-update" && data.id) {
+        if (data.type === "join") {
+          const joinCursor = data as CursorJoinBroadCast;
+          setIdNames((prev) => ({
+            ...prev,
+            [joinCursor.id]: {
+              name: joinCursor.username,
+              color:
+                ghibliColors[Math.floor(Math.random() * ghibliColors.length)],
+            },
+          }));
+
+          toast.success(`${joinCursor.username} joined the room`);
+        } else if (data.type === "cursor-update" && data.id) {
+          const cursor = data as CursorUpdateBroadCast;
           setCursors((prev) => ({
             ...prev,
-            [data.id]: data,
+            [cursor.id]: {
+              ...cursor,
+            },
           }));
         } else if (data.type === "cursor-leave") {
+          const leaveCursor = data as CursorLeaveBroadCast;
+
           setCursors((prev) => {
             const newCursors = { ...prev };
-            delete newCursors[data.id];
+            delete newCursors[leaveCursor.id];
             return newCursors;
           });
-        } else if (data.type === "cursors-state") {
-          setCursors(data.cursors);
+          setIdNames((prev) => {
+            const newIdNames = { ...prev };
+            toast.success(`${newIdNames[leaveCursor.id].name} left the room`);
+            delete newIdNames[leaveCursor.id];
+            return newIdNames;
+          });
         }
       } catch (error) {
         console.error("Error parsing cursor message:", error);
@@ -130,30 +176,19 @@ export default function ReactFlowCursorTracker({
     socket.addEventListener("message", handleMessage);
 
     return () => {
-      // Send leave message if connected
-      if (socket.readyState === WebSocket.OPEN) {
-        socket.send(
-          JSON.stringify({
-            type: "leave",
-            userId,
-            roomId,
-          })
-        );
-      }
-
       socket.removeEventListener("open", handleOpen);
       socket.removeEventListener("close", handleClose);
       socket.removeEventListener("message", handleMessage);
       socket.close();
     };
-  }, [userId, roomId, serverUrl]);
+  }, [userId, roomId, serverUrl, username]);
 
   // Track mouse movement on React Flow canvas
   useEffect(() => {
     if (!reactFlowWrapper || !socketRef.current) return;
 
     let lastUpdate = 0;
-    const THROTTLE_MS = 0; // ~30 updates per second
+    const THROTTLE_MS = 20; // ~30 updates per second
 
     const handleMouseMove = (e: MouseEvent) => {
       const now = Date.now();
@@ -175,13 +210,13 @@ export default function ReactFlowCursorTracker({
         ) {
           const updateData = {
             type: "cursor-update",
-            userId,
+            id: userId,
             roomId,
             x,
             y,
             canvasX,
             canvasY,
-          };
+          } as CursorUpdateInput;
 
           socketRef.current.send(JSON.stringify(updateData));
         }
@@ -221,7 +256,7 @@ export default function ReactFlowCursorTracker({
       >
         <MousePointer2
           color="transparent"
-          fill={cursor.color}
+          fill={idNames[cursor.id]?.color || "transparent"}
           size={24 * viewport.zoom}
         />
       </div>
