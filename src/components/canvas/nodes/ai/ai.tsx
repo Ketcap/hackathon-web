@@ -13,12 +13,25 @@ import {
 } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
-import { MoveIcon, Send, SettingsIcon } from "lucide-react";
+import { MoveIcon, Send, SettingsIcon, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { AINodeSettings } from "./ai-settings";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { AIProvider, useAI } from "./ai-provider";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { deleteNode } from "@/app/actions/node";
+import { useReactFlow } from "reactflow";
+import { toast } from "sonner";
 
 export interface AINodeData {
   messages: Message[];
@@ -26,8 +39,10 @@ export interface AINodeData {
 
 function AINodeBase({ id }: NodeProps<AINodeData>) {
   const [open, setOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
   const [message, setMessage] = useState("");
   const { sendMessage, messages, isRunning } = useAI();
+  const { setNodes } = useReactFlow();
   const scrollRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -46,17 +61,40 @@ function AINodeBase({ id }: NodeProps<AINodeData>) {
     sendMessage(message);
     setMessage("");
   };
+
+  const handleDelete = async () => {
+    try {
+      const result = await deleteNode(id);
+      if (result.success) {
+        setNodes((nds) => nds.filter((node) => node.id !== id));
+        toast.success("Node deleted successfully");
+      } else {
+        toast.error("Failed to delete node");
+      }
+    } catch (error) {
+      console.error("Error deleting node:", error);
+      toast.error("Something went wrong");
+    }
+  };
+
   return (
     <>
       <Card className="h-[600px] w-[500px] shadow-md">
         <CardHeader className="pb-2 ">
           <CardTitle className="text-sm font-medium">Chat</CardTitle>
           <CardAction>
-            <Button variant="ghost" size="sm" className="drag-handle">
+            <Button variant="ghost" size="sm" className={"drag-handle"}>
               <MoveIcon />
             </Button>
             <Button onClick={() => setOpen(true)} variant="ghost" size="sm">
               <SettingsIcon />
+            </Button>
+            <Button
+              onClick={() => setDeleteOpen(true)}
+              variant="ghost"
+              size="sm"
+            >
+              <Trash2 className="text-destructive" />
             </Button>
           </CardAction>
         </CardHeader>
@@ -116,6 +154,21 @@ function AINodeBase({ id }: NodeProps<AINodeData>) {
         </CardContent>
       </Card>
       <AINodeSettings open={open} onOpenChange={setOpen} nodeId={id} />
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the
+              node and all its data.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

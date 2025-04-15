@@ -140,3 +140,12 @@
     @apply bg-background text-foreground;
   }
 }
+
+.react-flow__node {
+  pointer-events: all;
+  user-select: all !important;
+}
+
+.react-flow__pane {
+  cursor: default !important;
+}

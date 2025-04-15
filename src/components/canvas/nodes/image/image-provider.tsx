@@ -6,6 +6,7 @@ import {
   ImageModel,
   ImageRun,
 } from "../../../../../cloudflare/types/image-room";
+import React, { Dispatch } from "react";
 
 interface ImageProviderProps {
   children: React.ReactNode;
@@ -30,20 +31,16 @@ const defaultConfig: Config = {
 interface ImageContextType {
   runs: ImageRun[];
   models: ImageModel[];
-  selectedModel: string;
-  setSelectedModel: (modelId: string) => void;
   generateImage: (prompt: string) => void;
   updateConfig: (config: Config) => void;
   config: Config;
   isRunning: boolean;
-  setConfig: (config: Config) => void;
+  setConfig: Dispatch<React.SetStateAction<Config>>;
 }
 
 const ImageContext = createContext<ImageContextType>({
   runs: [],
   models: [],
-  selectedModel: "",
-  setSelectedModel: () => {},
   generateImage: () => {},
   updateConfig: () => {},
   config: defaultConfig,
@@ -61,7 +58,6 @@ export function ImageProvider({
   serverUrl,
 }: ImageProviderProps) {
   const [config, setConfig] = useState<Config>(defaultConfig);
-  const [selectedModel, setSelectedModel] = useState<string>("");
   const [isRunning, setIsRunning] = useState(false);
   const socketRef = useRef<ReconnectingWebSocket | null>(null);
   const [runs, setRuns] = useState<ImageRun[]>([]);
@@ -104,6 +100,8 @@ export function ImageProvider({
             }
             return [...prev, data];
           });
+        } else if (data.type === "config") {
+          setConfig(data.config);
         }
       } catch (error) {
         console.error("Error parsing AI message:", error);
@@ -160,8 +158,6 @@ export function ImageProvider({
         isRunning,
         runs,
         models,
-        selectedModel,
-        setSelectedModel,
         setConfig,
       }}
     >

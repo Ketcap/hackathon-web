@@ -63,3 +63,27 @@ export async function updateNodeSettings(
 
   return { success: true, node };
 }
+
+export async function deleteNode(nodeId: string) {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error("Unauthorized");
+  }
+
+  try {
+    await prisma.node.delete({
+      where: {
+        id: nodeId,
+      },
+    });
+
+    return { success: true };
+  } catch (error) {
+    console.error("Error deleting node:", error);
+    return { success: false, error: "Failed to delete node" };
+  }
+}

@@ -23,8 +23,8 @@ export interface InfiniteCanvasProps {
 const nodeTypes: NodeTypes = {
   [NodeType.Chat]: AINode,
   [NodeType.Image]: ImageNode,
-  [NodeType.Video]: AINode,
-  [NodeType.Voice]: AINode,
+  // [NodeType.Video]: AINode,
+  // [NodeType.Voice]: AINode,
   [NodeType.Doc]: AINode,
 };
 
@@ -60,6 +60,7 @@ function InfiniteCanvas({
         const newNode = {
           id: result.node.id,
           type: result.node.type,
+          dragHandle: ".drag-handle",
           position: { x: result.node.posX, y: result.node.posY },
           data: { label: result.node.name, type: result.node.type },
         };

@@ -35,35 +35,23 @@ export function ImageNodeSettings({
   nodeId,
 }: ImageNodeSettingsProps) {
   const { setNodes } = useReactFlow();
-  const {
-    updateConfig,
-    config,
-    isRunning,
-    models,
-    selectedModel,
-    setSelectedModel,
-  } = useImage();
+  const { updateConfig, config, setConfig, isRunning, models } = useImage();
 
   const selectedModelConfig = models.find(
-    (model) => model.id === selectedModel
+    (model) => model.id === config.model
   ) || { options: {} };
-  const [localConfig, setLocalConfig] = useState({
-    model: config.model,
-    aspect_ratio: config.aspect_ratio,
-    style: config.style,
-    image_size: config.image_size,
-  });
 
   const handleOptionChange = useCallback((key: string, value: string) => {
-    setLocalConfig((prev) => ({
+    setConfig((prev) => ({
       ...prev,
       [key]: value,
     }));
   }, []);
 
   const updateNodeData = useCallback(() => {
-    updateConfig(localConfig);
-    updateNodeSettings(nodeId, localConfig);
+    setConfig(config);
+    updateConfig(config);
+    updateNodeSettings(nodeId, { ...config });
 
     setNodes((nds) =>
       nds.map((node) => {
@@ -72,7 +60,7 @@ export function ImageNodeSettings({
             ...node,
             data: {
               ...node.data,
-              ...localConfig,
+              ...config,
             },
           };
         }
@@ -81,7 +69,7 @@ export function ImageNodeSettings({
     );
 
     onOpenChange(false);
-  }, [nodeId, setNodes, onOpenChange, updateConfig, localConfig]);
+  }, [nodeId, setNodes, onOpenChange, setConfig, config, updateConfig]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -104,11 +92,10 @@ export function ImageNodeSettings({
             <Label htmlFor="model">Model</Label>
             <Select
               name="model"
-              value={selectedModel.toString()}
+              value={config.model}
               onValueChange={(value) => {
-                setSelectedModel(value);
-                setLocalConfig({
-                  ...localConfig,
+                setConfig({
+                  ...config,
                   model: value,
                 });
               }}
@@ -129,7 +116,7 @@ export function ImageNodeSettings({
           {Object.entries(selectedModelConfig.options).map(([key, value]) => {
             const options = value.split(",").map((opt) => opt.trim());
             const currentValue =
-              localConfig[key as keyof typeof localConfig] || options[0];
+              config[key as keyof typeof config] || options[0];
 
             return (
               <div key={key} className="space-y-2">

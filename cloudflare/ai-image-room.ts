@@ -63,6 +63,12 @@ export class ImageRoom extends BasicDurableObject {
         isRunning: this.isRunning,
       })
     );
+    server.send(
+      JSON.stringify({
+        type: "config",
+        config: this.config,
+      })
+    );
   }
 
   handleDisconnect(_: WebSocket) {

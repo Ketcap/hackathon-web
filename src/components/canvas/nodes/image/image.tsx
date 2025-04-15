@@ -31,7 +31,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 
-export type ImageNodeData = never;
+export type ImageNodeData = object;
 
 function ImageNodeBase({ id }: NodeProps<ImageNodeData>) {
   const [open, setOpen] = useState(false);
