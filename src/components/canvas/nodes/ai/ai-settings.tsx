@@ -71,7 +71,7 @@ export function AINodeSettings({
       );
       const systemPrompt = formData.get("systemPrompt") as string;
       const maxTokens =
-        Number.parseInt(formData.get("maxTokens") as string) || undefined;
+        Number.parseInt(formData.get("maxTokens") as string) || 1024;
 
       updateConfig({
         model,

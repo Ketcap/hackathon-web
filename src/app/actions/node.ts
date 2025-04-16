@@ -41,7 +41,7 @@ export async function createNode(
 
 export async function updateNodeSettings(
   nodeId: string,
-  settings: Record<string, string>
+  settings: Record<string, string | number | boolean>
 ) {
   const supabase = await createSupabaseServerClient();
   const {
