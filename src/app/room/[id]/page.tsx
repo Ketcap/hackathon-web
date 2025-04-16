@@ -6,8 +6,6 @@ import { CopyInvitation } from "@/components/room/copy-invitation";
 import InfiniteCanvasWrapper from "@/components/room/infinite-canvas";
 import ReactFlowCursorTracker from "@/components/canvas/cursors";
 import { PersistentViewport } from "@/components/canvas/usePersistentViewport";
-import { Button } from "@/components/ui/button";
-import Test from "./test";
 
 type RoomWithRelations = Prisma.RoomGetPayload<{
   include: {
