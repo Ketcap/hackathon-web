@@ -20,7 +20,7 @@ export class AIRoom extends BasicDurableObject {
     maxTokens: number;
     prompt: string;
   } = {
-    model: "openai:o3-mini",
+    model: "openai:gpt-4.1",
     temperature: 0.5,
     maxTokens: 1000,
     prompt: "",

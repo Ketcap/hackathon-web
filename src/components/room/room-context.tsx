@@ -17,11 +17,12 @@ import {
   CursorLeaveBroadCast,
   CursorUpdateBroadCast,
   NodePositionBroadcast,
+  NodeAddBroadcast,
+  NodeRemoveBroadcast,
 } from "../../../cloudflare/types/cursor-room";
-import { Node } from "reactflow";
-import { NodeType } from "@prisma/client";
+import { NodeType, Node as PrismaNode } from "@prisma/client";
 
-interface NodeData {
+export interface NodeData {
   label: string;
   type: NodeType;
 }
@@ -43,6 +44,11 @@ interface RoomContextType {
     nodeId: string,
     position: { x: number; y: number }
   ) => void;
+  lastNodeUpdate: NodePositionBroadcast | null;
+  handleNodeAdd: (node: PrismaNode) => void;
+  handleNodeRemove: (nodeId: string) => void;
+  lastNodeAdd: NodeAddBroadcast | null;
+  lastNodeRemove: NodeRemoveBroadcast | null;
 }
 
 const RoomContext = createContext<RoomContextType | null>(null);
@@ -79,22 +85,26 @@ export function RoomProvider({
   const [idNames, setIdNames] = useState<
     Record<string, { name: string; color: string }>
   >({});
+  const [lastNodeUpdate, setLastNodeUpdate] =
+    useState<NodePositionBroadcast | null>(null);
+  const [lastNodeAdd, setLastNodeAdd] = useState<NodeAddBroadcast | null>(null);
+  const [lastNodeRemove, setLastNodeRemove] =
+    useState<NodeRemoveBroadcast | null>(null);
 
   const handleMessage = useCallback((data: WebSocketMessage) => {
     if (data.type === "join") {
       const joinCursor = data as unknown as CursorJoinBroadCast;
-      setIdNames((prev: Record<string, { name: string; color: string }>) => ({
+      setIdNames((prev) => ({
         ...prev,
         [joinCursor.id]: {
           name: joinCursor.username,
           color: ghibliColors[Math.floor(Math.random() * ghibliColors.length)],
         },
       }));
-
       toast.success(`${joinCursor.username} joined the room`);
     } else if (data.type === "cursor-update" && data.id) {
       const cursor = data as unknown as CursorUpdateBroadCast;
-      setCursors((prev: Record<string, CursorPosition>) => ({
+      setCursors((prev) => ({
         ...prev,
         [cursor.id]: {
           ...cursor,
@@ -102,27 +112,28 @@ export function RoomProvider({
       }));
     } else if (data.type === "cursor-leave") {
       const leaveCursor = data as unknown as CursorLeaveBroadCast;
-
-      setCursors((prev: Record<string, CursorPosition>) => {
+      setCursors((prev) => {
         const newCursors = { ...prev };
         delete newCursors[leaveCursor.id];
         return newCursors;
       });
-      setIdNames((prev: Record<string, { name: string; color: string }>) => {
+      setIdNames((prev) => {
         const newIdNames = { ...prev };
-        toast.success(`${newIdNames[leaveCursor.id].name} left the room`);
-        delete newIdNames[leaveCursor.id];
+        if (newIdNames[leaveCursor.id]) {
+          toast.success(`${newIdNames[leaveCursor.id].name} left the room`);
+          delete newIdNames[leaveCursor.id];
+        }
         return newIdNames;
       });
     } else if (data.type === "node-position") {
-      // const update = data as unknown as NodePositionBroadcast;
-      // setNodes((nds: Node<NodeData>[]) =>
-      //   nds.map((node: Node<NodeData>) =>
-      //     node.id === update.nodeId
-      //       ? { ...node, position: update.position }
-      //       : node
-      //   )
-      // );
+      const update = data as unknown as NodePositionBroadcast;
+      setLastNodeUpdate(update);
+    } else if (data.type === "node-add") {
+      const addData = data as unknown as NodeAddBroadcast;
+      setLastNodeAdd(addData);
+    } else if (data.type === "node-remove") {
+      const removeData = data as unknown as NodeRemoveBroadcast;
+      setLastNodeRemove(removeData);
     }
   }, []);
 
@@ -135,18 +146,46 @@ export function RoomProvider({
         id: userId,
         username,
       } as const;
-      sendMessage(joinMessage);
+      sendMessage(joinMessage as unknown as WebSocketMessage);
     },
   });
 
   const handleNodePositionChange = useCallback(
     (nodeId: string, position: { x: number; y: number }) => {
-      const update = {
+      const update: NodePositionBroadcast = {
         type: "node-position",
         nodeId,
         position,
-      } as const;
-      sendMessage(update);
+      };
+      sendMessage(update as unknown as WebSocketMessage);
+    },
+    [sendMessage]
+  );
+
+  const handleNodeAdd = useCallback(
+    (node: PrismaNode) => {
+      const message: NodeAddBroadcast = {
+        type: "node-add",
+        node: {
+          id: node.id,
+          type: node.type,
+          posX: node.posX,
+          posY: node.posY,
+          name: node.name,
+        },
+      };
+      sendMessage(message as unknown as WebSocketMessage);
+    },
+    [sendMessage]
+  );
+
+  const handleNodeRemove = useCallback(
+    (nodeId: string) => {
+      const message: NodeRemoveBroadcast = {
+        type: "node-remove",
+        nodeId,
+      };
+      sendMessage(message as unknown as WebSocketMessage);
     },
     [sendMessage]
   );
@@ -159,6 +198,11 @@ export function RoomProvider({
         sendMessage,
         isConnected,
         handleNodePositionChange,
+        lastNodeUpdate,
+        handleNodeAdd,
+        handleNodeRemove,
+        lastNodeAdd,
+        lastNodeRemove,
       }}
     >
       {children}

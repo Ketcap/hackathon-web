@@ -29,20 +29,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { deleteNode } from "@/app/actions/node";
-import { useReactFlow } from "reactflow";
-import { toast } from "sonner";
 
 export interface AINodeData {
-  messages: Message[];
+  onDelete?: (nodeId: string) => void;
 }
 
-function AINodeBase({ id }: NodeProps<AINodeData>) {
+function AINodeBase({ id, onDelete }: NodeProps & AINodeData) {
   const [open, setOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [message, setMessage] = useState("");
   const { sendMessage, messages, isRunning } = useAI();
-  const { setNodes } = useReactFlow();
   const scrollRef = useRef<HTMLDivElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -62,19 +58,11 @@ function AINodeBase({ id }: NodeProps<AINodeData>) {
     setMessage("");
   };
 
-  const handleDelete = async () => {
-    try {
-      const result = await deleteNode(id);
-      if (result.success) {
-        setNodes((nds) => nds.filter((node) => node.id !== id));
-        toast.success("Node deleted successfully");
-      } else {
-        toast.error("Failed to delete node");
-      }
-    } catch (error) {
-      console.error("Error deleting node:", error);
-      toast.error("Something went wrong");
+  const handleDelete = () => {
+    if (onDelete) {
+      onDelete(id);
     }
+    setDeleteOpen(false);
   };
 
   return (
@@ -173,11 +161,10 @@ function AINodeBase({ id }: NodeProps<AINodeData>) {
   );
 }
 
-export const AINode = (props: NodeProps<AINodeData>) => (
+export const AINode = (props: NodeProps & AINodeData) => (
   <AIProvider
     roomId={props.id}
     serverUrl={`wss://canvas-ai.uoruc5.workers.dev`}
-    // serverUrl={`wss://localhost:8787`}
   >
     <AINodeBase {...props} />
   </AIProvider>

@@ -5,6 +5,8 @@ import {
   CursorLeaveBroadCast,
   CursorUpdateBroadCast,
   NodePositionBroadcast,
+  NodeAddBroadcast,
+  NodeRemoveBroadcast,
 } from "./types/cursor-room";
 
 // This file would be deployed to Cloudflare Workers
@@ -54,6 +56,12 @@ export class CursorRoom extends BasicDurableObject {
 
         // Broadcast to all clients except sender
         this.broadcast(nodePositionData, server);
+      } else if (data.type === "node-add") {
+        const nodeAddData = data as NodeAddBroadcast;
+        this.broadcast(nodeAddData, server);
+      } else if (data.type === "node-remove") {
+        const nodeRemoveData = data as NodeRemoveBroadcast;
+        this.broadcast(nodeRemoveData, server);
       } else if (data.type === "leave") {
         this.handleDisconnect(server);
       }

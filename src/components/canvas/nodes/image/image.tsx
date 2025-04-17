@@ -10,7 +10,16 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import Image from "next/image";
-import { Loader2, MoveIcon, Send, SettingsIcon, Info } from "lucide-react";
+import {
+  Loader2,
+  MoveIcon,
+  Send,
+  SettingsIcon,
+  Info,
+  Trash2,
+  Copy,
+  Check,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
@@ -30,11 +39,26 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
-export type ImageNodeData = object;
+export type ImageNodeData = {
+  onDelete?: (nodeId: string) => void;
+};
 
-function ImageNodeBase({ id }: NodeProps<ImageNodeData>) {
+function ImageNodeBase({ id, onDelete }: NodeProps & ImageNodeData) {
   const [open, setOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [imageDetailOpen, setImageDetailOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [selectedRun, setSelectedRun] = useState<number>(0);
   const [message, setMessage] = useState("");
   const { generateImage, isRunning, runs } = useImage();
@@ -57,12 +81,30 @@ function ImageNodeBase({ id }: NodeProps<ImageNodeData>) {
     runs[runs.length - 1].output === undefined &&
     selectedRun === runs.length - 1;
 
+  const handleDeleteConfirm = () => {
+    if (onDelete) {
+      onDelete(id);
+    }
+    setDeleteOpen(false);
+  };
+
+  const handleCopyUrl = () => {
+    if (runs[selectedRun]?.output) {
+      navigator.clipboard.writeText(runs[selectedRun].output).then(() => {
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+      });
+    }
+  };
+
+  const selectedImageUrl = runs[selectedRun]?.output;
+
   return (
     <>
       <Card className="h-[450px] w-[500px] shadow-md">
-        <CardHeader className="pb-2 ">
+        <CardHeader className="pb-2 flex flex-row items-center justify-between">
           <CardTitle className="text-sm font-medium">Image</CardTitle>
-          <CardAction className="flex flex-row gap-2">
+          <CardAction className="flex items-center gap-1">
             {runs.length > 0 && (
               <Select
                 onValueChange={(value) => setSelectedRun(parseInt(value))}
@@ -80,17 +122,35 @@ function ImageNodeBase({ id }: NodeProps<ImageNodeData>) {
                 </SelectContent>
               </Select>
             )}
-            <Button variant="ghost" size="sm" className="drag-handle">
-              <MoveIcon />
+            <Button
+              variant="ghost"
+              size="icon"
+              className="drag-handle cursor-grab"
+            >
+              <MoveIcon size={16} />
             </Button>
-            <Button onClick={() => setOpen(true)} variant="ghost" size="sm">
-              <SettingsIcon />
+            <Button onClick={() => setOpen(true)} variant="ghost" size="icon">
+              <SettingsIcon size={16} />
             </Button>
+            {onDelete && (
+              <Button
+                size="icon"
+                variant="ghost"
+                className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                onClick={() => setDeleteOpen(true)}
+              >
+                <Trash2 size={16} />
+              </Button>
+            )}
           </CardAction>
         </CardHeader>
 
         <CardContent className="h-[100%] flex flex-col justify-between">
-          <AspectRatio ratio={16 / 9}>
+          <AspectRatio
+            ratio={16 / 9}
+            className="relative cursor-pointer"
+            onClick={() => selectedImageUrl && setImageDetailOpen(true)}
+          >
             {isLatestImageRunning ? (
               <div className="h-full w-full flex items-center justify-center">
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -164,15 +224,65 @@ function ImageNodeBase({ id }: NodeProps<ImageNodeData>) {
         </CardContent>
       </Card>
       <ImageNodeSettings open={open} onOpenChange={setOpen} nodeId={id} />
+
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. This will permanently delete the
+              node.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteConfirm}>
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={imageDetailOpen} onOpenChange={setImageDetailOpen}>
+        <AlertDialogContent className="max-w-3xl">
+          <AlertDialogHeader></AlertDialogHeader>
+          {selectedImageUrl && (
+            <div className="flex flex-col items-center gap-4 pt-4">
+              <AspectRatio ratio={16 / 9} className="w-full">
+                <Image
+                  src={selectedImageUrl}
+                  alt="Generated Image"
+                  fill
+                  className="object-contain rounded-md"
+                />
+              </AspectRatio>
+              <div className="flex w-full items-center gap-2">
+                <Input
+                  readOnly
+                  value={selectedImageUrl}
+                  className="flex-grow"
+                />
+                <Button onClick={handleCopyUrl} variant="outline" size="icon">
+                  {copied ? (
+                    <Check className="h-4 w-4" />
+                  ) : (
+                    <Copy className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+            </div>
+          )}
+          <AlertDialogFooter></AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }
 
-export const ImageNode = (props: NodeProps<ImageNodeData>) => (
+export const ImageNode = (props: NodeProps & ImageNodeData) => (
   <ImageProvider
     roomId={props.id}
     serverUrl={`wss://canvas-ai.uoruc5.workers.dev`}
-    // serverUrl={`wss://localhost:8787`}
   >
     <ImageNodeBase {...props} />
   </ImageProvider>

@@ -3,105 +3,251 @@ import ReactFlow, {
   Background,
   NodeTypes,
   ReactFlowProvider,
-  useNodesState,
   useReactFlow,
   OnNodesChange,
+  Node,
+  useNodesState,
+  NodePositionChange,
+  NodeProps,
 } from "reactflow";
 import "reactflow/dist/style.css";
 import { CanvasContextMenu } from "./canvas-context-menu";
 import { createNode } from "@/app/actions/node";
 import { toast } from "sonner";
-import { NodeType, Node } from "@prisma/client";
-import { useState } from "react";
+import { NodeType, Node as PrismaNode } from "@prisma/client";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { AINode } from "../canvas/nodes/ai/ai";
 import { ImageNode } from "../canvas/nodes/image/image";
-import { useRoom } from "./room-context";
+import { useRoom, NodeData } from "./room-context";
+import { updateNodePosition, deleteNode } from "@/app/actions/node";
 
 export interface InfiniteCanvasProps {
   roomId: string;
-  initialNodes: Node[];
+  initialNodes: PrismaNode[];
   children: React.ReactNode;
 }
 
-const nodeTypes: NodeTypes = {
-  [NodeType.Chat]: AINode,
-  [NodeType.Image]: ImageNode,
-  [NodeType.Doc]: AINode,
+// Helper to format Prisma nodes to React Flow nodes
+const formatNodes = (prismaNodes: PrismaNode[]): Node<NodeData>[] => {
+  return prismaNodes.map((node) => ({
+    id: node.id,
+    type: node.type,
+    dragHandle: ".drag-handle",
+    position: { x: node.posX, y: node.posY },
+    data: { label: node.name, type: node.type },
+  }));
 };
+
+const NODE_POSITION_THROTTLE_MS = 33; // Real-time broadcast throttle
+const NODE_SAVE_DEBOUNCE_MS = 100; // Save delay after drag stops
 
 function InfiniteCanvas({
   roomId,
   initialNodes,
   children,
 }: InfiniteCanvasProps) {
-  const { handleNodePositionChange } = useRoom();
+  const {
+    handleNodePositionChange,
+    lastNodeUpdate,
+    handleNodeAdd,
+    handleNodeRemove,
+    lastNodeAdd,
+    lastNodeRemove,
+  } = useRoom();
   const { screenToFlowPosition } = useReactFlow();
   const [contextMenuPosition, setContextMenuPosition] = useState<{
     x: number;
     y: number;
   } | null>(null);
-  const [nodes, setNodes, onNodesChange] = useNodesState(
-    // Convert database nodes to React Flow nodes
-    initialNodes.map((node) => ({
-      id: node.id,
-      type: node.type,
-      dragHandle: ".drag-handle",
-      position: { x: node.posX, y: node.posY },
-      data: { label: node.name, type: node.type },
-    }))
+  const [nodes, setNodes, onNodesChange] = useNodesState<NodeData>([]);
+
+  // Ref for throttling node position updates
+  const nodeBroadcastTimestamps = useRef<Record<string, number>>({});
+  // Ref for debounce timers
+  const nodeSaveTimers = useRef<Record<string, NodeJS.Timeout>>({});
+
+  // Cleanup timers on unmount
+  useEffect(() => {
+    return () => {
+      Object.values(nodeSaveTimers.current).forEach(clearTimeout);
+    };
+  }, []);
+
+  // Initial node setup
+  useEffect(() => {
+    setNodes(formatNodes(initialNodes));
+  }, [initialNodes, setNodes]);
+
+  // Effect for external position updates
+  useEffect(() => {
+    if (lastNodeUpdate) {
+      setNodes((currentNodes) =>
+        currentNodes.map((node) =>
+          node.id === lastNodeUpdate.nodeId
+            ? { ...node, position: lastNodeUpdate.position }
+            : node
+        )
+      );
+    }
+  }, [lastNodeUpdate, setNodes]);
+
+  // Effect for external node additions
+  useEffect(() => {
+    if (lastNodeAdd) {
+      const newNodeData: NodeData = {
+        label: lastNodeAdd.node.name,
+        type: lastNodeAdd.node.type as NodeType,
+      };
+      const newNode: Node<NodeData> = {
+        id: lastNodeAdd.node.id,
+        type: lastNodeAdd.node.type as NodeType,
+        dragHandle: ".drag-handle",
+        position: { x: lastNodeAdd.node.posX, y: lastNodeAdd.node.posY },
+        data: newNodeData,
+      };
+      setNodes((currentNodes) =>
+        currentNodes.some((n) => n.id === newNode.id)
+          ? currentNodes
+          : [...currentNodes, newNode]
+      );
+    }
+  }, [lastNodeAdd, setNodes]);
+
+  // Effect for external node removals
+  useEffect(() => {
+    if (lastNodeRemove) {
+      console.log(
+        "[Canvas] Received node remove from context:",
+        lastNodeRemove
+      );
+      setNodes((currentNodes) =>
+        currentNodes.filter((node) => node.id !== lastNodeRemove.nodeId)
+      );
+    }
+  }, [lastNodeRemove, setNodes]);
+
+  // Combined handler for local changes and throttling broadcasts during drag
+  const handleNodesChange: OnNodesChange = useCallback(
+    (changes) => {
+      onNodesChange(changes);
+
+      const positionChanges = changes.filter(
+        (change): change is NodePositionChange => change.type === "position"
+      );
+
+      const now = Date.now();
+      positionChanges.forEach((change) => {
+        if (change.dragging && change.position) {
+          // Throttle real-time broadcasts
+          const lastBroadcast = nodeBroadcastTimestamps.current[change.id] || 0;
+          if (now - lastBroadcast > NODE_POSITION_THROTTLE_MS) {
+            handleNodePositionChange(change.id, change.position);
+            nodeBroadcastTimestamps.current[change.id] = now;
+          }
+          // Clear pending save timer on drag start
+          if (nodeSaveTimers.current[change.id]) {
+            clearTimeout(nodeSaveTimers.current[change.id]);
+            delete nodeSaveTimers.current[change.id];
+          }
+        }
+      });
+    },
+    [onNodesChange, handleNodePositionChange]
   );
 
-  // Handle node position changes
-  const handleNodesChange: OnNodesChange = (changes) => {
-    onNodesChange(changes);
-
-    // Update positions in the database when nodes are dragged
-    changes.forEach((change) => {
-      if (change.type === "position" && change.dragging) {
-        const node = nodes.find((n) => n.id === change.id);
-        if (node) {
-          handleNodePositionChange(node.id, node.position);
+  // Handler for finished drag events (triggers debounced save)
+  const handleNodeDragStop = useCallback(
+    (_event: React.MouseEvent, node: Node<NodeData>) => {
+      if (nodeSaveTimers.current[node.id]) {
+        clearTimeout(nodeSaveTimers.current[node.id]);
+      }
+      nodeSaveTimers.current[node.id] = setTimeout(async () => {
+        try {
+          const result = await updateNodePosition(node.id, node.position);
+          if (!result.success) {
+            toast.error("Failed to save node position.");
+            console.error("Failed to update node position:", result.error);
+          }
+        } catch (error) {
+          toast.error("Error saving node position.");
+          console.error("Error calling updateNodePosition:", error);
         }
-      }
-    });
-  };
+        delete nodeSaveTimers.current[node.id];
+      }, NODE_SAVE_DEBOUNCE_MS);
+    },
+    []
+  );
 
-  const handleNodeCreate = async (type: NodeType) => {
-    try {
-      const result = await createNode(roomId, type, {
-        x: contextMenuPosition?.x || 0,
-        y: contextMenuPosition?.y || 0,
-      });
-
-      if (result.success && result.node) {
-        const newNode = {
-          id: result.node.id,
-          type: result.node.type,
-          dragHandle: ".drag-handle",
-          position: { x: result.node.posX, y: result.node.posY },
-          data: { label: result.node.name, type: result.node.type },
+  const handleNodeCreate = useCallback(
+    async (type: NodeType) => {
+      try {
+        const position = {
+          x: contextMenuPosition?.x || 0,
+          y: contextMenuPosition?.y || 0,
         };
-        setNodes((nds) => [...nds, newNode]);
-        toast.success(`${result.node.name} created successfully`);
-      } else {
-        toast.error("Failed to create node");
-      }
-    } catch (error) {
-      console.error("Error creating node:", error);
-      toast.error("Something went wrong");
-    }
-  };
+        const result = await createNode(roomId, type, position);
 
-  const handleNodeCreated = (node: Node) => {
-    const newNode = {
-      id: node.id,
-      type: node.type,
-      dragHandle: ".drag-handle",
-      position: { x: node.posX, y: node.posY },
-      data: { label: node.name, type: node.type },
-    };
-    setNodes((nds) => [...nds, newNode]);
-  };
+        if (result.success && result.node) {
+          const newNodeData: NodeData = {
+            label: result.node.name,
+            type: result.node.type,
+          };
+          const newNode: Node<NodeData> = {
+            id: result.node.id,
+            type: result.node.type,
+            dragHandle: ".drag-handle",
+            position: { x: result.node.posX, y: result.node.posY },
+            data: newNodeData,
+          };
+          setNodes((nds) => [...nds, newNode]);
+          handleNodeAdd(result.node);
+          toast.success(`${result.node.name} created successfully`);
+        } else {
+          toast.error("Failed to create node");
+        }
+      } catch (error) {
+        console.error("Error creating node:", error);
+        toast.error("Something went wrong");
+      }
+    },
+    [roomId, contextMenuPosition, setNodes, handleNodeAdd]
+  );
+
+  // Function to handle node deletion (will be passed to nodes)
+  const handleNodeDelete = useCallback(
+    async (nodeId: string) => {
+      setNodes((nds) => nds.filter((n) => n.id !== nodeId));
+      handleNodeRemove(nodeId); // Broadcast removal
+      try {
+        const result = await deleteNode(nodeId);
+        if (result.success) {
+          toast.success("Node deleted successfully");
+        } else {
+          toast.error("Failed to delete node on server.");
+          console.error("Failed to delete node:", result.error);
+          // TODO: Revert local deletion?
+        }
+      } catch (error) {
+        toast.error("Error deleting node.");
+        console.error("Error calling deleteNode:", error);
+        // TODO: Revert local deletion?
+      }
+    },
+    [setNodes, handleNodeRemove] // Dependencies
+  );
+
+  // Create nodeTypes dynamically to inject onDelete
+  const nodeTypes: NodeTypes = useMemo(
+    () => ({
+      [NodeType.Chat]: (props: NodeProps<NodeData>) => (
+        <AINode {...props} onDelete={handleNodeDelete} />
+      ),
+      [NodeType.Image]: (props: NodeProps<NodeData>) => (
+        <ImageNode {...props} onDelete={handleNodeDelete} />
+      ),
+    }),
+    [handleNodeDelete]
+  );
 
   return (
     <CanvasContextMenu onNodeCreate={handleNodeCreate}>
@@ -111,11 +257,12 @@ function InfiniteCanvas({
           multiSelectionKeyCode={null}
           nodes={nodes}
           onNodesChange={handleNodesChange}
+          onNodeDragStop={handleNodeDragStop}
+          nodeTypes={nodeTypes} // Use the memoized nodeTypes
           className="bg-background"
           zoomOnPinch
           minZoom={0.5}
           maxZoom={1}
-          nodeTypes={nodeTypes}
           zoomOnScroll={false}
           preventScrolling={false}
           onContextMenu={(e) => {

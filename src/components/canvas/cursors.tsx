@@ -117,7 +117,6 @@ export function ReactFlowCursorTracker({
           left: `${cursorX}px`,
           top: `${cursorY}px`,
           zIndex: 1000,
-          marginTop: "-9px",
         }}
       >
         <MousePointer2

@@ -38,3 +38,19 @@ interface NodePositionBroadcast {
   nodeId: string;
   position: { x: number; y: number };
 }
+
+interface NodeAddBroadcast {
+  type: "node-add";
+  node: {
+    id: string;
+    type: string; // Using string here for simplicity, adjust if needed
+    posX: number;
+    posY: number;
+    name: string;
+  };
+}
+
+interface NodeRemoveBroadcast {
+  type: "node-remove";
+  nodeId: string;
+}

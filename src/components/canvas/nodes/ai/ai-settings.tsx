@@ -32,10 +32,9 @@ export interface AINodeSettingsProps {
 }
 
 const models = [
-  { label: "OpenAI O3 Mini", value: "openai:o3-mini" },
-  { label: "OpenAI O1 Mini", value: "openai:o1-mini" },
-  { label: "OpenAI GPT-4O Mini", value: "openai:gpt-4o-mini" },
+  { label: "OpenAI GPT-4.1", value: "openai:gpt-4.1" },
   { label: "OpenAI GPT-4O", value: "openai:gpt-4o" },
+  { label: "OpenAI GPT-4O Mini", value: "openai:gpt-4o-mini" },
   { label: "Groq Gemma 2 9B", value: "groq:gemma2-9b-it" },
   { label: "Groq Llama 3.1 8B Instant", value: "groq:llama-3.1-8b-instant" },
   { label: "Groq Llama3 70B", value: "groq:llama3-70b-8192" },
