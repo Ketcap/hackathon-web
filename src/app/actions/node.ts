@@ -39,6 +39,35 @@ export async function createNode(
   }
 }
 
+export async function updateNodePosition(
+  nodeId: string,
+  position: { x: number; y: number }
+) {
+  const supabase = await createSupabaseServerClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error("Unauthorized");
+  }
+
+  try {
+    const node = await prisma.node.update({
+      where: { id: nodeId },
+      data: {
+        posX: Math.round(position.x),
+        posY: Math.round(position.y),
+      },
+    });
+
+    return { success: true, node };
+  } catch (error) {
+    console.error("Error updating node position:", error);
+    return { success: false, error: "Failed to update node position" };
+  }
+}
+
 export async function updateNodeSettings(
   nodeId: string,
   settings: Record<string, string | number | boolean>

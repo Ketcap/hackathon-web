@@ -32,3 +32,9 @@ export interface CursorLeaveBroadCast {
   type: "cursor-leave";
   id: string;
 }
+
+interface NodePositionBroadcast {
+  type: "node-position";
+  nodeId: string;
+  position: { x: number; y: number };
+}

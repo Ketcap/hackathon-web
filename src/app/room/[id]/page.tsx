@@ -4,8 +4,9 @@ import { notFound, redirect } from "next/navigation";
 import { Prisma } from "@prisma/client";
 import { CopyInvitation } from "@/components/room/copy-invitation";
 import InfiniteCanvasWrapper from "@/components/room/infinite-canvas";
-import ReactFlowCursorTracker from "@/components/canvas/cursors";
+import { ReactFlowCursorTracker } from "@/components/canvas/cursors";
 import { PersistentViewport } from "@/components/canvas/usePersistentViewport";
+import { RoomProvider } from "@/components/room/room-context";
 
 type RoomWithRelations = Prisma.RoomGetPayload<{
   include: {
@@ -90,17 +91,17 @@ export default async function RoomPage({
         <div className="flex-1 flex">
           {/* Canvas area */}
           <div className="flex-1 relative">
-            <InfiniteCanvasWrapper roomId={id} initialNodes={roomData.Nodes}>
-              {/* Add your canvas content here */}
-              <PersistentViewport roomId={id} />
-              <ReactFlowCursorTracker
-                userId={user.id}
-                username={user.email ?? ""}
-                roomId={id}
-                serverUrl={`wss://canvas-ai.uoruc5.workers.dev`}
-                // serverUrl={`wss://localhost:8787`}
-              />
-            </InfiniteCanvasWrapper>
+            <RoomProvider
+              userId={user.id}
+              roomId={id}
+              username={user.email ?? ""}
+            >
+              <InfiniteCanvasWrapper roomId={id} initialNodes={roomData.Nodes}>
+                {/* Add your canvas content here */}
+                <PersistentViewport roomId={id} />
+                <ReactFlowCursorTracker userId={user.id} roomId={id} />
+              </InfiniteCanvasWrapper>
+            </RoomProvider>
           </div>
         </div>
       </div>

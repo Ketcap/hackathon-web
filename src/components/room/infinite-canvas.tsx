@@ -5,6 +5,7 @@ import ReactFlow, {
   ReactFlowProvider,
   useNodesState,
   useReactFlow,
+  OnNodesChange,
 } from "reactflow";
 import "reactflow/dist/style.css";
 import { CanvasContextMenu } from "./canvas-context-menu";
@@ -14,6 +15,8 @@ import { NodeType, Node } from "@prisma/client";
 import { useState } from "react";
 import { AINode } from "../canvas/nodes/ai/ai";
 import { ImageNode } from "../canvas/nodes/image/image";
+import { useRoom } from "./room-context";
+
 export interface InfiniteCanvasProps {
   roomId: string;
   initialNodes: Node[];
@@ -23,8 +26,6 @@ export interface InfiniteCanvasProps {
 const nodeTypes: NodeTypes = {
   [NodeType.Chat]: AINode,
   [NodeType.Image]: ImageNode,
-  // [NodeType.Video]: AINode,
-  // [NodeType.Voice]: AINode,
   [NodeType.Doc]: AINode,
 };
 
@@ -33,6 +34,7 @@ function InfiniteCanvas({
   initialNodes,
   children,
 }: InfiniteCanvasProps) {
+  const { handleNodePositionChange } = useRoom();
   const { screenToFlowPosition } = useReactFlow();
   const [contextMenuPosition, setContextMenuPosition] = useState<{
     x: number;
@@ -48,6 +50,21 @@ function InfiniteCanvas({
       data: { label: node.name, type: node.type },
     }))
   );
+
+  // Handle node position changes
+  const handleNodesChange: OnNodesChange = (changes) => {
+    onNodesChange(changes);
+
+    // Update positions in the database when nodes are dragged
+    changes.forEach((change) => {
+      if (change.type === "position" && change.dragging) {
+        const node = nodes.find((n) => n.id === change.id);
+        if (node) {
+          handleNodePositionChange(node.id, node.position);
+        }
+      }
+    });
+  };
 
   const handleNodeCreate = async (type: NodeType) => {
     try {
@@ -75,6 +92,17 @@ function InfiniteCanvas({
     }
   };
 
+  const handleNodeCreated = (node: Node) => {
+    const newNode = {
+      id: node.id,
+      type: node.type,
+      dragHandle: ".drag-handle",
+      position: { x: node.posX, y: node.posY },
+      data: { label: node.name, type: node.type },
+    };
+    setNodes((nds) => [...nds, newNode]);
+  };
+
   return (
     <CanvasContextMenu onNodeCreate={handleNodeCreate}>
       <div className="w-full h-full">
@@ -82,7 +110,7 @@ function InfiniteCanvas({
           fitView
           multiSelectionKeyCode={null}
           nodes={nodes}
-          onNodesChange={onNodesChange}
+          onNodesChange={handleNodesChange}
           className="bg-background"
           zoomOnPinch
           minZoom={0.5}
@@ -99,9 +127,9 @@ function InfiniteCanvas({
           }}
         >
           <Background
-            gap={30}
-            size={1}
-            color="#323232"
+            gap={50}
+            size={2}
+            color="#232323"
             style={{ opacity: 1 }}
           />
           {children}

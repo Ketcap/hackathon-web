@@ -1,59 +1,23 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
-import { MousePointer2 } from "lucide-react";
-import ReconnectingWebSocket from "reconnecting-websocket";
+import { useCallback, useEffect } from "react";
 import { useReactFlow, useStore, useViewport } from "reactflow";
-import { toast } from "sonner";
-import {
-  CursorJoinBroadCast,
-  CursorJoinInput,
-  CursorLeaveBroadCast,
-  CursorUpdateBroadCast,
-  CursorUpdateInput,
-} from "../../../cloudflare/types/cursor-room";
-
-interface CursorPosition {
-  id: string;
-  x: number;
-  y: number;
-  canvasX: number;
-  canvasY: number;
-}
+import { useRoom } from "../room/room-context";
+import { MousePointer2 } from "lucide-react";
+import { CursorUpdateInput } from "../../../cloudflare/types/cursor-room";
+import { WebSocketMessage } from "@/hooks/useWebSocketConnection";
 
 interface ReactFlowCursorTrackerProps {
   userId: string;
-  roomId?: string;
-  serverUrl: string;
-  username: string;
+  roomId: string;
 }
 
-const ghibliColors = [
-  "#7CA9E6", // Sky Blue
-  "#D56D5A", // Forest Red
-  "#8BC28A", // Totoro Pasture
-  "#E6A4B4", // Chihiro Rose
-  "#F0A868", // Calcifer's Ember
-  "#5D9B9B", // Ponyo Ocean
-  "#A893C0", // Wind Lavender
-  "#D8B44A", // Kiki Yellow
-  "#7D9367", // Forest Moss
-  "#C67D5E", // Kaguya Clay
-];
-
-export default function ReactFlowCursorTracker({
+export function ReactFlowCursorTracker({
   userId,
-  roomId = "default",
-  serverUrl,
-  username,
+  roomId,
 }: ReactFlowCursorTrackerProps) {
-  const [idNames, setIdNames] = useState<
-    Record<string, { name: string; color: string }>
-  >({});
-  const [cursors, setCursors] = useState<Record<string, CursorPosition>>({});
-  const socketRef = useRef<ReconnectingWebSocket | null>(null);
-
-  // Get React Flow instance and DOM node
+  const { cursors, idNames, sendMessage } = useRoom();
+  const { getViewport } = useReactFlow();
   const { screenToFlowPosition } = useReactFlow();
   const reactFlowWrapper = useStore((state) => state.domNode);
 
@@ -94,106 +58,13 @@ export default function ReactFlowCursorTracker({
     [reactFlowWrapper, viewport, screenToFlowPosition]
   );
 
-  // Initialize WebSocket connection
   useEffect(() => {
-    if (!userId || !serverUrl) return;
-
-    // Create a reconnecting WebSocket
-    const socket = new ReconnectingWebSocket(
-      `${serverUrl}/cursor?id=${roomId}`,
-      [],
-      {
-        maxReconnectionDelay: 5000,
-        minReconnectionDelay: 1000,
-        reconnectionDelayGrowFactor: 1.3,
-        connectionTimeout: 4000,
-        maxRetries: 3,
-        debug: false,
-      }
-    );
-
-    socketRef.current = socket;
-
-    const handleOpen = () => {
-      // Send join message
-      socket.send(
-        JSON.stringify({
-          type: "join",
-          id: userId,
-          username,
-        } as CursorJoinInput)
-      );
-    };
-
-    const handleClose = () => {};
-
-    const handleMessage = (event: MessageEvent) => {
-      try {
-        const data = JSON.parse(event.data);
-
-        if (data.type === "join") {
-          const joinCursor = data as CursorJoinBroadCast;
-          setIdNames((prev) => ({
-            ...prev,
-            [joinCursor.id]: {
-              name: joinCursor.username,
-              color:
-                ghibliColors[Math.floor(Math.random() * ghibliColors.length)],
-            },
-          }));
-
-          toast.success(`${joinCursor.username} joined the room`);
-        } else if (data.type === "cursor-update" && data.id) {
-          const cursor = data as CursorUpdateBroadCast;
-          setCursors((prev) => ({
-            ...prev,
-            [cursor.id]: {
-              ...cursor,
-            },
-          }));
-        } else if (data.type === "cursor-leave") {
-          const leaveCursor = data as CursorLeaveBroadCast;
-
-          setCursors((prev) => {
-            const newCursors = { ...prev };
-            delete newCursors[leaveCursor.id];
-            return newCursors;
-          });
-          setIdNames((prev) => {
-            const newIdNames = { ...prev };
-            toast.success(`${newIdNames[leaveCursor.id].name} left the room`);
-            delete newIdNames[leaveCursor.id];
-            return newIdNames;
-          });
-        }
-      } catch (error) {
-        console.error("Error parsing cursor message:", error);
-      }
-    };
-
-    socket.addEventListener("open", handleOpen);
-    socket.addEventListener("close", handleClose);
-    socket.addEventListener("message", handleMessage);
-
-    return () => {
-      socket.removeEventListener("open", handleOpen);
-      socket.removeEventListener("close", handleClose);
-      socket.removeEventListener("message", handleMessage);
-      socket.close();
-    };
-  }, [userId, roomId, serverUrl, username]);
-
-  // Track mouse movement on React Flow canvas
-  useEffect(() => {
-    if (!reactFlowWrapper || !socketRef.current) return;
-
     let lastUpdate = 0;
-    const THROTTLE_MS = 20; // ~30 updates per second
+    const THROTTLE_MS = 33; // ~30 updates per second
 
-    const handleMouseMove = (e: MouseEvent) => {
+    const updateCursorPosition = (e: MouseEvent) => {
       const now = Date.now();
       if (now - lastUpdate < THROTTLE_MS) return;
-
       lastUpdate = now;
 
       try {
@@ -203,46 +74,40 @@ export default function ReactFlowCursorTracker({
           e.clientY
         );
 
-        // Only send if connected
-        if (
-          socketRef.current &&
-          socketRef.current.readyState === WebSocket.OPEN
-        ) {
-          const updateData = {
-            type: "cursor-update",
-            id: userId,
-            roomId,
-            x,
-            y,
-            canvasX,
-            canvasY,
-          } as CursorUpdateInput;
+        const updateData = {
+          type: "cursor-update",
+          id: userId,
+          roomId,
+          x,
+          y,
+          canvasX,
+          canvasY,
+        } as CursorUpdateInput;
 
-          socketRef.current.send(JSON.stringify(updateData));
-        }
+        sendMessage(updateData as unknown as WebSocketMessage);
       } catch (error) {
         console.error("Error tracking mouse movement:", error);
       }
     };
 
-    reactFlowWrapper.addEventListener("mousemove", handleMouseMove);
+    // Add event listeners for all mouse events
+    window.addEventListener("mousemove", updateCursorPosition);
 
     return () => {
-      reactFlowWrapper.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mousemove", updateCursorPosition);
     };
-  }, [userId, roomId, reactFlowWrapper, getFlowPosition]);
+  }, [getViewport, roomId, sendMessage, getFlowPosition, userId]);
 
-  useEffect(() => {
-    if (!viewport) return;
-    setCursors((prev) => ({ ...prev }));
-  }, [viewport]);
+  return Object.entries(cursors).map(([id, cursor]) => {
+    if (id === userId) return null;
 
-  if (!reactFlowWrapper) return null;
-  return Object.values(cursors).map((cursor) => {
-    if (cursor.id === userId) return null;
+    const userInfo = idNames[id];
+    if (!userInfo) return null;
+
     // Use the absolute canvas position and transform it to the current viewport
     const cursorX = cursor.canvasX * viewport.zoom + viewport.x;
     const cursorY = cursor.canvasY * viewport.zoom + viewport.y;
+
     return (
       <div
         key={cursor.id}
@@ -252,12 +117,13 @@ export default function ReactFlowCursorTracker({
           left: `${cursorX}px`,
           top: `${cursorY}px`,
           zIndex: 1000,
+          marginTop: "-9px",
         }}
       >
         <MousePointer2
           color="transparent"
-          fill={idNames[cursor.id]?.color || "transparent"}
-          size={24 * viewport.zoom}
+          fill={userInfo.color || "transparent"}
+          size={36 * viewport.zoom}
         />
       </div>
     );

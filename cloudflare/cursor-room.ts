@@ -4,7 +4,9 @@ import {
   CursorJoinInput,
   CursorLeaveBroadCast,
   CursorUpdateBroadCast,
+  NodePositionBroadcast,
 } from "./types/cursor-room";
+
 // This file would be deployed to Cloudflare Workers
 
 // Define the Durable Object class
@@ -43,6 +45,15 @@ export class CursorRoom extends BasicDurableObject {
 
         // Broadcast to all clients except sender
         this.broadcast(cursorUpdateData, server);
+      } else if (data.type === "node-position") {
+        const nodePositionData = {
+          type: "node-position",
+          nodeId: data.nodeId,
+          position: data.position,
+        } as NodePositionBroadcast;
+
+        // Broadcast to all clients except sender
+        this.broadcast(nodePositionData, server);
       } else if (data.type === "leave") {
         this.handleDisconnect(server);
       }
