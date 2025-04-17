@@ -6,7 +6,7 @@ import {
   ContextMenuItem,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
-import { MessageSquare, Image, Video, Mic, FileText } from "lucide-react";
+import { MessageSquare, ImageIcon, Video, Mic, FileText } from "lucide-react";
 import { NodeType } from "@prisma/client";
 
 interface CanvasContextMenuProps {
@@ -37,27 +37,18 @@ export function CanvasContextMenu({
           onClick={() => handleNodeCreate(NodeType.Image)}
           className="flex items-center gap-2"
         >
-          <Image className="h-4 w-4" />
+          <ImageIcon className="h-4 w-4" />
           Image Node
         </ContextMenuItem>
-        <ContextMenuItem
-          onClick={() => handleNodeCreate(NodeType.Video)}
-          className="flex items-center gap-2"
-        >
+        <ContextMenuItem disabled className="flex items-center gap-2">
           <Video className="h-4 w-4" />
           Video Node
         </ContextMenuItem>
-        <ContextMenuItem
-          onClick={() => handleNodeCreate(NodeType.Voice)}
-          className="flex items-center gap-2"
-        >
+        <ContextMenuItem disabled className="flex items-center gap-2">
           <Mic className="h-4 w-4" />
           Voice Node
         </ContextMenuItem>
-        <ContextMenuItem
-          onClick={() => handleNodeCreate(NodeType.Doc)}
-          className="flex items-center gap-2"
-        >
+        <ContextMenuItem disabled className="flex items-center gap-2">
           <FileText className="h-4 w-4" />
           Document Node
         </ContextMenuItem>
