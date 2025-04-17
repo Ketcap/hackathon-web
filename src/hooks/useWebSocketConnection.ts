@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback, useMemo, useRef } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import ReconnectingWebSocket from "reconnecting-websocket";
 
 export type WebSocketMessage = Record<string | number, unknown>;
@@ -64,7 +64,9 @@ export function useWebSocketConnection({
       try {
         const data = JSON.parse(event.data) as WebSocketMessage;
         onMessage?.(data);
-      } catch (_) {}
+      } catch (error) {
+        console.error("Error parsing message:", error);
+      }
     };
 
     socket.addEventListener("open", handleOpen);
